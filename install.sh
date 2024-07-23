@@ -41,6 +41,7 @@ pip3 install -e ./RLBench
 pip3 install -e ./RPT_model
 pip3 install -e ./RPT_model/detr
 
+nch_RPT/RLBench
 
 # 4. test RLBench RPT
 

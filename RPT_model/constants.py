@@ -13,8 +13,15 @@ SIM_TASK_CONFIGS = {
     },
     'push_button':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/push_button/variation0', # 单个颜色
-        'episode_len': 93, # 是一个平均值
-        'num_episodes': 24,
+        'episode_len': 30, # 是一个平均值
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
+    'push_buttons':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+        'dataset_dir': DATA_DIR + '/push_buttons/variation0', # 单个颜色
+        'episode_len': 30, # 是一个平均值
+        'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
