@@ -15,7 +15,6 @@ python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
 python3 RLBench/tools/task_builder_sawyer.py --task push_button
 python3 RLBench/tools/task_builder_sawyer.py --task push_buttons
 
-
 # 演示数据集生成    
 python3 RLBench/tools/dataset_generator_sawyer_act3.py \
     --save_path Datasets \
@@ -25,7 +24,7 @@ python3 RLBench/tools/dataset_generator_sawyer_act3.py \
 ; \
 
 # 数据集可视化
-python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/sorting_program5/variation0 --episode_idx 0
+python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/push_button/variation0 --episode_idx 0
 # 修改数据集
 python3 RPT_model/mod_datasets.py
 
@@ -82,11 +81,7 @@ nvidia-nccl-cu12              2.20.5 #############
 nvidia-nvjitlink-cu12         12.5.40 #############
 nvidia-nvtx-cu12              12.1.105
 
-
-
 conda install pytorch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 pytorch-cuda=12.1 -c pytorch -c nvidia
-
-
 
 python RPT_model/imitate_episodes_sawyer4.py \
     --task_name sorting_program5 \
