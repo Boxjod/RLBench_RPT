@@ -12,7 +12,7 @@ fi
 
     # 1.3 create env for RLBench_RPT
 conda create -n rlbench_rpt python=3.8.10 # the version is strict
-conda activtae rlbench_rpt
+conda activate rlbench_rpt
 
 
 # 2. install CoppeliaSim
@@ -30,6 +30,7 @@ bash $COPPELIASIM_ROOT/coppeliaSim.sh
 # 3. RPT for RLBench 
 
     # 3.1 git the project
+conda activate rlbench_rpt
 git clone https://github.com/Boxjod/RLBench_RPT.git
 cd RLBench_RPT
     # 3.2 install all requirements
@@ -40,26 +41,39 @@ pip3 install -e ./RLBench
 pip3 install -e ./RPT_model
 pip3 install -e ./RPT_model/detr
 
-    # 3.3 test RLBench RPT
+
+# 4. test RLBench RPT
+
+    # 4.1 test RLBench task builder
+conda activate rlbench_rpt
 python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
 
+    # 4.2 get demo for RPT in RLBench
+conda activate rlbench_rpt
 python3 RLBench/tools/dataset_generator_sawyer_act3.py \
     --save_path Datasets \
     --tasks sorting_program5 \
     --variations 1 \
     --episodes_per_task 50
+    
+    python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/sorting_program5/variation0 --episode_idx 0
+    
+    # 4.3 train task and eval
+conda activate rlbench_rpt
+python RPT_model/imitate_episodes_sawyer4.py \
+    --task_name sorting_program5 \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    ; \
+python RPT_model/imitate_episodes_sawyer4.py \
+    --task_name sorting_program5 \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    --eval --temporal_agg \
+    ; \
 
 
-cd RLBench_RPT/RPT_Model
-cd act/detr && pip install -e .
-
-
-
-python3 RLBench/tools/dataset_generator_sawyer_act3.py \
-    --save_path Datasets \
-    --tasks sorting_program \
-    --variations 1 \
-    --episodes_per_task 50 
-
-# 4. tools
+# 5. recommend tools
 HDF5_Viewer: https://myhdf5.hdfgroup.org/
