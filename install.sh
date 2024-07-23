@@ -37,8 +37,8 @@ conda activate rlbench_rpt
 pip3 install -r requirements.txt
 pip3 install -e ./PyRep # need COPPELIASIM_ROOT
 pip3 install -e ./RLBench
-pip install -e ./RPT_Model
-pip install -e ./RPT_Model/detr
+pip3 install -e ./RPT_model
+pip3 install -e ./RPT_model/detr
 
     # 3.3 test RLBench RPT
 python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
