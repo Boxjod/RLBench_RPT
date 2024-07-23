@@ -30,7 +30,7 @@ def make_sim_env(task_name):
     """
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04"
     if socket.gethostname() != 'XJ':
-        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "~/workspace/CoppeliaSim"
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/arx-4090/workspace/CoppeliaSim"
     
     # 1. 设置仿真环境的配置文件
     img_size = [160, 120] # 图片格式大小
