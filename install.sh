@@ -28,23 +28,33 @@ bash $COPPELIASIM_ROOT/coppeliaSim.sh
 
 
 # 3. RPT for RLBench 
-conda activate rlbench_rpt
+
     # 3.1 git the project
 git clone https://github.com/Boxjod/RLBench_RPT.git
-    # 3.2 install and test pyrep
-cd RLBench_RPT/PyRep
+cd RLBench_RPT
+    # 3.2 install all requirements
+conda activate rlbench_rpt
 pip3 install -r requirements.txt
-pip3 install -e .
-python examples/example_panda_reach_target.py
-    # 3.3 install andtest RLBench
-cd RLBench_RPT/RLBench
-pip install -r requirements.txt
-pip install -e .
-python tools/task_builder.py
-    # 3.4 test RLBench RPT
+pip3 install -e ./PyRep # need COPPELIASIM_ROOT
+pip3 install -e ./RLBench
+pip install -e ./RPT_Model
+pip install -e ./RPT_Model/detr
+
+    # 3.3 test RLBench RPT
+python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
+
+python3 RLBench/tools/dataset_generator_sawyer_act3.py \
+    --save_path Datasets \
+    --tasks sorting_program5 \
+    --variations 1 \
+    --episodes_per_task 50
+
+
 cd RLBench_RPT/RPT_Model
-pip install -r requirements.txt
 cd act/detr && pip install -e .
+
+
+
 python3 RLBench/tools/dataset_generator_sawyer_act3.py \
     --save_path Datasets \
     --tasks sorting_program \
