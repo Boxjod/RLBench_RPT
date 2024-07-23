@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/8a36eac9598844dfbcb59d85e0a7902c/artifacts
+end_time: 1714360904597
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8a36eac9598844dfbcb59d85e0a7902c
+run_name: bustling-mouse-613
+run_uuid: 8a36eac9598844dfbcb59d85e0a7902c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1714360891299
+status: 3
+tags: []
+user_id: boxjod

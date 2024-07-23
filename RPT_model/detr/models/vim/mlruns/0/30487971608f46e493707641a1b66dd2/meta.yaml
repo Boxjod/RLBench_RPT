@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/30487971608f46e493707641a1b66dd2/artifacts
+end_time: 1712479431665
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 30487971608f46e493707641a1b66dd2
+run_name: peaceful-mule-636
+run_uuid: 30487971608f46e493707641a1b66dd2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1712479431632
+status: 3
+tags: []
+user_id: boxjod

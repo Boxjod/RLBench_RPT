@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/471c9ecec25843929110da1b46a06a16/artifacts
+end_time: 1714368775390
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 471c9ecec25843929110da1b46a06a16
+run_name: exultant-hawk-405
+run_uuid: 471c9ecec25843929110da1b46a06a16
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1714368775012
+status: 3
+tags: []
+user_id: boxjod

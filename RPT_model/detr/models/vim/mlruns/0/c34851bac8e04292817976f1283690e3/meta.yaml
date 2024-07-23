@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/c34851bac8e04292817976f1283690e3/artifacts
+end_time: 1713359548385
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: c34851bac8e04292817976f1283690e3
+run_name: upset-conch-113
+run_uuid: c34851bac8e04292817976f1283690e3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713359548304
+status: 3
+tags: []
+user_id: boxjod

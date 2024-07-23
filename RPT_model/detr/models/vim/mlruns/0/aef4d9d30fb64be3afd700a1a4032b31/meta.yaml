@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/aef4d9d30fb64be3afd700a1a4032b31/artifacts
+end_time: 1713362627891
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: aef4d9d30fb64be3afd700a1a4032b31
+run_name: aged-jay-417
+run_uuid: aef4d9d30fb64be3afd700a1a4032b31
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713362627053
+status: 3
+tags: []
+user_id: boxjod

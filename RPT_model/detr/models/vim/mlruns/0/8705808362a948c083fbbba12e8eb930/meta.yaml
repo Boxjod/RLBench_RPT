@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/8705808362a948c083fbbba12e8eb930/artifacts
+end_time: 1713358879194
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8705808362a948c083fbbba12e8eb930
+run_name: bright-flea-992
+run_uuid: 8705808362a948c083fbbba12e8eb930
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713358879131
+status: 3
+tags: []
+user_id: boxjod

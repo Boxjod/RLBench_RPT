@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/425f788352e3463ba5a102c3c185701e/artifacts
+end_time: 1713360250985
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 425f788352e3463ba5a102c3c185701e
+run_name: big-dove-132
+run_uuid: 425f788352e3463ba5a102c3c185701e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713360250879
+status: 3
+tags: []
+user_id: boxjod

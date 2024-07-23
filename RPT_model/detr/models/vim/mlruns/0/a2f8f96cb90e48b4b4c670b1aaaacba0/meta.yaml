@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/a2f8f96cb90e48b4b4c670b1aaaacba0/artifacts
+end_time: 1713360157971
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a2f8f96cb90e48b4b4c670b1aaaacba0
+run_name: youthful-cod-73
+run_uuid: a2f8f96cb90e48b4b4c670b1aaaacba0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713360157879
+status: 3
+tags: []
+user_id: boxjod

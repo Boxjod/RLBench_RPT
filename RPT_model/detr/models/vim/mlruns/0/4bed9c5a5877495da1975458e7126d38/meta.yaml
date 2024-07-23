@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/4bed9c5a5877495da1975458e7126d38/artifacts
+end_time: 1714361333401
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4bed9c5a5877495da1975458e7126d38
+run_name: useful-shark-161
+run_uuid: 4bed9c5a5877495da1975458e7126d38
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1714361328332
+status: 3
+tags: []
+user_id: boxjod

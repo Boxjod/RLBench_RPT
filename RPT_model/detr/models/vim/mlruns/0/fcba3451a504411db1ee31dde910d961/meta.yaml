@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/fcba3451a504411db1ee31dde910d961/artifacts
+end_time: 1713362670034
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: fcba3451a504411db1ee31dde910d961
+run_name: likeable-hen-594
+run_uuid: fcba3451a504411db1ee31dde910d961
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713362655549
+status: 3
+tags: []
+user_id: boxjod

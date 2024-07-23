@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/bacef57321664914bf34f1c57e846c7f/artifacts
+end_time: 1713362102033
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: bacef57321664914bf34f1c57e846c7f
+run_name: worried-shoat-872
+run_uuid: bacef57321664914bf34f1c57e846c7f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713362093092
+status: 3
+tags: []
+user_id: boxjod

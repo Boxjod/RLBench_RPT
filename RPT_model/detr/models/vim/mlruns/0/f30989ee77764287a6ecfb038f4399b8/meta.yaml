@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/f30989ee77764287a6ecfb038f4399b8/artifacts
+end_time: 1713360637087
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f30989ee77764287a6ecfb038f4399b8
+run_name: angry-sponge-989
+run_uuid: f30989ee77764287a6ecfb038f4399b8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713360636976
+status: 3
+tags: []
+user_id: boxjod

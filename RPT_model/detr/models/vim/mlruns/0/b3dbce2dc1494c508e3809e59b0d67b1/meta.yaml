@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/b3dbce2dc1494c508e3809e59b0d67b1/artifacts
+end_time: 1712480995357
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: b3dbce2dc1494c508e3809e59b0d67b1
+run_name: beautiful-flea-818
+run_uuid: b3dbce2dc1494c508e3809e59b0d67b1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1712480995325
+status: 3
+tags: []
+user_id: boxjod

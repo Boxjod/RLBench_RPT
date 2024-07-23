@@ -1,0 +1,15 @@
+artifact_uri: file:///home/boxjod/Gym/RLBench/Mamba/Vim/vim/mlruns/0/3a2934f9367c4d72a40aacff09916e91/artifacts
+end_time: 1713361998662
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3a2934f9367c4d72a40aacff09916e91
+run_name: illustrious-mare-199
+run_uuid: 3a2934f9367c4d72a40aacff09916e91
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1713361996076
+status: 3
+tags: []
+user_id: boxjod
