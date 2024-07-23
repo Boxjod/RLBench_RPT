@@ -1,7 +1,19 @@
+# for pyrep
+numpy
+cffi==1.14.2
+
+# for rlbench
+Pillow
+pyquaternion
+html-testRunner
+setuptools
+natsort
+
+
+# for rlbench_rpt
 torch
 torchvision
 torchaudio
-pyquaternion
 pyyaml
 rospkg
 pexpect
@@ -18,6 +30,7 @@ termcolor
 imageio
 onnx
 
+# for FILM,TTS,LLM
 psutil 
 h5py_cache 
 transformers 
