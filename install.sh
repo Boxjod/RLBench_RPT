@@ -46,7 +46,7 @@ pip3 install -e ./RPT_model/detr
 
     # 4.1 test RLBench task builder
 conda activate rlbench_rpt
-python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
+python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5 #[remember don't save scene in Coppeliasim]
 
     # 4.2 get demo for RPT in RLBench
 conda activate rlbench_rpt

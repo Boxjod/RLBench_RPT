@@ -1,0 +1,6 @@
+Trainings/*
+Datasets/*
+
+**/__pycache__
+*.pyc
+
