@@ -23,7 +23,11 @@ from absl import flags
 import time
 import h5py
 
-from constants import SIM_TASK_CONFIGS
+import sys
+sys.path.append(".")
+
+from RPT_model.constants import SIM_TASK_CONFIGS
+
 import json
 import cv2
 

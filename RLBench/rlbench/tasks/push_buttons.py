@@ -113,7 +113,7 @@ class PushButtons(Task):
 
         b = SpawnBoundary([self.boundaries])
         for button in self.target_buttons:
-            b.sample(button, min_distance=0.1)
+            b.sample(button, min_distance=0.2)
 
         num_non_targets = 3 - self.buttons_to_push
         spare_colors = list(set(colors)

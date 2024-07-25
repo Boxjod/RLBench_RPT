@@ -8,7 +8,7 @@ python3 RLBench/tools/dataset_generator_sawyer_act3.py \
     --episodes_per_task 50
 
 model_type=(ACT0E0 ACT3E0 ACT3E2 ACT3E3)
-epoch_list=(1000 2000 3000 4000 5000 6000 7000)
+epoch_list=(8000 9000 10000 11000 12000 13000 14000)
 backbone_list=("efficientnet_b0")
 chunk_size=(20 30)
 for model in ${model_type[@]}

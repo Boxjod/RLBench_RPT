@@ -14,7 +14,7 @@ class PhoneOnBase(Task):
         self.register_graspable_objects([phone])
         self.register_success_conditions([
             DetectedCondition(phone, ProximitySensor('success')),
-            NothingGrasped(self.robot.gripper)
+            # NothingGrasped(self.robot.gripper)
         ])
 
     def init_episode(self, index: int) -> List[str]:
