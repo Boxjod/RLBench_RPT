@@ -17,7 +17,7 @@ python3 RLBench/tools/task_builder_sawyer.py --task push_button # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 任务可以，但是有问题
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop # 任务可以，但是有问题
 
-python3 RLBench/tools/task_builder_sawyer.py --task reach_target_sawyer4
+python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop
 
 
 # 演示数据集生成    
