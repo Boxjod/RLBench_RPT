@@ -8,7 +8,7 @@
 #     --episodes_per_task 50
 
 model_type=(ACT0E0 ACT3E0 ACT3E2 ACT3E3)
-epoch_list=(8000 9000 10000 11000 12000 13000 14000)
+epoch_list=(14000 15000 16000)
 backbone_list=("efficientnet_b0")
 chunk_size=(20 30)
 for model in ${model_type[@]}
