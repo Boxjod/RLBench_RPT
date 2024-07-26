@@ -24,13 +24,13 @@ for model in ${model_type[@]}
         echo '##################################################################'
         
         CUDA_VISIBLE_DEVICES=0 python3 RPT_model/imitate_episodes_sawyer4.py \
-        --task_name sorting_program5 \
+        --task_name push_button \
         --ckpt_dir Trainings \
         --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
         --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
         ; \
         CUDA_VISIBLE_DEVICES=0 python3 RPT_model/imitate_episodes_sawyer4.py \
-        --task_name sorting_program5 \
+        --task_name push_button \
         --ckpt_dir Trainings \
         --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
         --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
