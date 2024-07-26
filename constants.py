@@ -27,14 +27,14 @@ SIM_TASK_CONFIGS = {
     },
     'basketball_in_hoop':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/basketball_in_hoop/variation0', # 单个颜色
-        'episode_len': 50, # 是一个平均值
+        'episode_len': 60, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
     'phone_on_base':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/phone_on_base/variation0', # 单个颜色
-        'episode_len': 50, # 是一个平均值
+        'episode_len': 60, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
