@@ -29,8 +29,12 @@ class ACTPolicy(nn.Module):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
         image = normalize(image)
+        
         if actions is not None: # training time
-            history_images = history_images[:, :self.model.num_queries]
+            if len(history_images.shape) > 4:
+                history_images = normalize(history_images)
+                history_images = history_images[:, :self.model.num_queries]
+                
             history_action = history_action[:, :self.model.num_queries]
             is_pad_history = is_pad_history[:, :self.model.num_queries]
             
