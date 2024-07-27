@@ -13,7 +13,7 @@ bash /home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/coppeliaSim.sh
 # 创建和修改测试RLBench任务【千万不要在这里的CoppeliaSim的界面里保存scence，要不会将任务设计场景覆盖到基础的task_design框架场景】
 python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5 # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task push_button # 可以
-python3 RLBench/tools/task_builder_sawyer.py --task push_button # 可以
+python3 RLBench/tools/task_builder_sawyer.py --task push_buttons # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 任务可以，但是有问题
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop # 任务可以，但是有问题
 
