@@ -1,3 +1,7 @@
+# 服务器训练
+conda activate rlbench_rpt
+cd ~/workspace/RLBench_RPT
+
 # git需要更新秘钥时：
 git config --global --replace-all user.password "要修改的密码"
 
