@@ -244,7 +244,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             # if 'sawyer' in self.dataset_dir: # 已经在数据集中调整过了
             #     image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_LINEAR)
             # 放大
-            image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=4, fy=4, interpolation=cv.INTER_AREA) # wrist_rgb
+            # image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=4, fy=4, interpolation=cv.INTER_AREA) # wrist_rgb
                 
             # if mamba
             # image_dict[cam_name] = image_dict[cam_name][0:120, 20:140, :] # Slicing to crop the image
