@@ -395,7 +395,7 @@ class CNNMLP(nn.Module):
             backbone_down_projs = []
             for backbone in backbones:
                 down_proj = nn.Sequential(
-                    nn.Conv2d(backbone.num_channels, 128, kernel_size=5),
+                    nn.Conv2d(backbone.num_channels, 128, kernel_size=5), # kernel_size=5
                     nn.Conv2d(128, 64, kernel_size=5),
                     nn.Conv2d(64, 32, kernel_size=5)
                 )
@@ -421,14 +421,18 @@ class CNNMLP(nn.Module):
         for cam_id, cam_name in enumerate(self.camera_names):
             features, pos = self.backbones[cam_id](image[:, cam_id])
             features = features[0] # take the last layer feature
+            print(f'{features.shape=}')
             pos = pos[0] # not used
-            all_cam_features.append(self.backbone_down_projs[cam_id](features))
+            down_features = self.backbone_down_projs[cam_id](features)
+            print(f'{down_features.shape=}')
+            all_cam_features.append(down_features)
         # flatten everything
         flattened_features = []
         for cam_feature in all_cam_features:
             flattened_features.append(cam_feature.reshape([bs, -1]))
         flattened_features = torch.cat(flattened_features, axis=1) # 768 each
         features = torch.cat([flattened_features, qpos], axis=1) # qpos: 14
+        print(f'{features.shape=}')
         a_hat = self.mlp(features)
         return a_hat
 
@@ -513,6 +517,8 @@ def build_cnnmlp(args):
     for _ in args.camera_names:
         backbone = build_backbone(args)
         backbones.append(backbone)
+        # print(backbone)
+        # return
 
     model = CNNMLP(
         backbones,

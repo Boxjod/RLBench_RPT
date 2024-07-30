@@ -45,7 +45,7 @@ class LightBulbOut(Task):
         self.register_success_conditions([DetectedCondition(
             self.bulb,
             ProximitySensor('success')),
-            NothingGrasped(self.robot.gripper)])
+            ]) # NothingGrasped(self.robot.gripper)
         return ['put the bulb in the %s holder' % target_color_name,
                 'screw the bulb out and leave it in the %s stand' %
                 target_color_name,

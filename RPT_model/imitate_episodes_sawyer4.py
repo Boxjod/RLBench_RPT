@@ -30,7 +30,7 @@ from constants import DT
 from constants import PUPPET_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import compute_dict_mean, set_seed, detach_dict # helper functions
-from policy import ACTPolicy, CNNMLPPolicy
+from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy
 from visualize_episodes import save_videos
 
 from sim_env import BOX_POSE
@@ -53,6 +53,11 @@ def main(args):
     num_epochs = args['num_epochs']
     num_verification = args['num_verification']
     variation = args['variation']
+    multi_gpu = args["multi_gpu"]
+    
+    if args["gpu"] is not None and not multi_gpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = f"{args['gpu']}"
+        assert torch.cuda.is_available()
     
     is_sim = True 
     if is_sim:
@@ -130,9 +135,30 @@ def main(args):
                          'action_dim': action_dim,
                          'num_queries': args['chunk_size'],
                          }
-    elif policy_class == 'CNNMLP':
-        policy_config = {'lr': args['lr'], 'lr_backbone': lr_backbone, 'backbone' : backbone, 'num_queries': 1,
-                         'camera_names': camera_names,}
+    elif policy_class == "Diffusion":
+        policy_config = {
+            "lr": args["lr"],
+            "camera_names": camera_names,
+            "action_dim": 14,
+            "observation_horizon": 1,
+            "action_horizon": 8,  # TODO not used
+            "prediction_horizon": args["chunk_size"],
+            "num_queries": args["chunk_size"],
+            "num_inference_timesteps": 10,
+            "ema_power": 0.75,
+            "vq": False,
+            "backbone": backbone,
+            "multi_gpu": multi_gpu,
+            "is_eval": is_eval,
+        }
+    elif policy_class == "CNNMLP":
+        policy_config = {
+            "lr": args["lr"],
+            "lr_backbone": lr_backbone,
+            "backbone": backbone,
+            "num_queries": 1,
+            "camera_names": camera_names,
+        }
     else:
         raise NotImplementedError
     
@@ -192,7 +218,9 @@ def main(args):
 def make_policy(policy_class, policy_config):
     if 'ACT' in policy_class: # policy_class == 'ACT':
         policy = ACTPolicy(policy_config)
-    elif policy_class == 'CNNMLP':
+    elif policy_class == "Diffusion":
+        policy = DiffusionPolicy(policy_config)
+    elif policy_class == "CNNMLP":
         policy = CNNMLPPolicy(policy_config)
     else:
         raise NotImplementedError
@@ -201,8 +229,10 @@ def make_policy(policy_class, policy_config):
 def make_optimizer(policy_class, policy):
     if 'ACT' in policy_class: #policy_class == 'ACT':
         optimizer = policy.configure_optimizers()
-    elif policy_class == 'CNNMLP':
-        optimizer = policy.configure_optimizers() 
+    elif policy_class == "Diffusion":
+        optimizer = policy.configure_optimizers()
+    elif policy_class == "CNNMLP":
+        optimizer = policy.configure_optimizers()
     else:
         raise NotImplementedError
     return optimizer
@@ -290,7 +320,13 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
     pre_process_gpos = lambda s_gpos: (s_gpos - stats['gpos_mean']) / stats['gpos_std']
     pre_process_action_history = lambda s_action: (s_action - stats['action_mean']) / stats['action_std']
     
-    post_process = lambda a: a * stats['action_std'] + stats['action_mean']
+    if policy_class == "Diffusion":
+        post_process = (
+            lambda a: ((a + 1) / 2) * (stats["action_max"] - stats["action_min"])
+            + stats["action_min"]
+        )
+    else:
+        post_process = lambda a: a * stats['action_std'] + stats['action_mean']
     
     # load environment
     if not real_robot:
@@ -391,7 +427,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 curr_image = get_image(obs, camera_names) # 获取帧数据的图像
 
                 ### query policy
-                if 'ACT' in config['policy_class']:  # config['policy_class'] == "ACT":
+                if 'ACT' in config['policy_class'] or 'Diffusion' in config["policy_class"]:  # config['policy_class'] == "ACT":
                     if t % query_frequency == 0:
                         
                         if use_language and (t % max_skill_len == 0) :
@@ -602,7 +638,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
 #     gpu_mem_total, gpu_mem_used, gpu_mem_free = get_gpu_mem_info()
 #     return (gpu_mem_used/gpu_mem_total)*100
 
-def forward_pass(data, policy, use_gpos=True, use_language=False):
+def forward_pass(data, policy, policy_class=None, use_gpos=True, use_language=False):
     
     # print("########\n前向传播：", print_gpu_mem())
     if use_language:  # use_language
@@ -620,7 +656,10 @@ def forward_pass(data, policy, use_gpos=True, use_language=False):
         return policy(qpos_data, gpos_data, image_data, history_images_data, history_action_data, is_pad_history, action_data, is_pad_action, command_embedding) # TODO remove None # 提供了action data 不是训练模式
     else:
         gpos_data = None
-        return policy(qpos_data, gpos_data, image_data, history_images_data, history_action_data, is_pad_history, action_data, is_pad_action, command_embedding) # TODO remove None # 提供了action data 不是训练模式
+        if 'ACT' in policy_class:
+            return policy(qpos_data, gpos_data, image_data, history_images_data, history_action_data, is_pad_history, action_data, is_pad_action, command_embedding) # TODO remove None # 提供了action data 不是训练模式
+        else:
+            policy(qpos_data, image_data, action_data, is_pad_action, command_embedding)
 
 
 def train_bc(train_dataloader, val_dataloader, config):
@@ -629,8 +668,10 @@ def train_bc(train_dataloader, val_dataloader, config):
     seed = config['seed']
     policy_class = config['policy_class']
     policy_config = config['policy_config']
-    
-    use_gpos = config['policy_config']['use_gpos']
+    if "ACT" in policy_class:
+        use_gpos = config['policy_config']['use_gpos']
+    else:
+        use_gpos = False
     use_language = config["use_language"]
     set_seed(seed)
     
@@ -675,7 +716,7 @@ def train_bc(train_dataloader, val_dataloader, config):
             
             # 将验证集的数据都跑一下
             for batch_idx, data in enumerate(val_dataloader):
-                forward_dict = forward_pass(data, policy, use_gpos=use_gpos, use_language=use_language) # 前向传播！！
+                forward_dict = forward_pass(data, policy, policy_class=policy_class, use_gpos=use_gpos, use_language=use_language) # 前向传播！！
                 # 为什么验证的时候要做前向传播呢？？  ===》在policy在eval模式下，权重不会做更新，在eval的时候做前向传播是为了计算loss
                 epoch_dicts.append(forward_dict)
                 
@@ -700,7 +741,7 @@ def train_bc(train_dataloader, val_dataloader, config):
         # print("加载优化器 ：", print_gpu_mem())
         
         for batch_idx, data in enumerate(train_dataloader): # 迭代循环训练集
-            forward_dict = forward_pass(data, policy, use_gpos=use_gpos, use_language=use_language) # 前向传播！！
+            forward_dict = forward_pass(data, policy, policy_class=policy_class, use_gpos=use_gpos, use_language=use_language) # 前向传播！！
             # backward
             loss = forward_dict['loss'] # 没有用训练的loss，而是用eval的loss做输出
             loss.backward() # 损失反向传播
@@ -779,7 +820,9 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_dim', action='store', type=int, help='hidden_dim', required=False) # 隐藏层层数
     parser.add_argument('--dim_feedforward', action='store', type=int, help='dim_feedforward', required=False) # 前馈层层数
     parser.add_argument('--temporal_agg', action='store_true')
-    parser.add_argument('--backbone', default='resnet18', type=str, help="Name of the convolutional backbone to use")
+    # parser.add_argument('--backbone', default='resnet18', type=str, help="Name of the convolutional backbone to use")
+
+    parser.add_argument("--backbone", type=str, default='resnet18', choices=['resnet18', 'resnet34', 'resnet50', 'efficientnet_b0', 'efficientnet_b3', 'resnet18film', 'resnet34film', 'resnet50film','efficientnet_b0film', 'efficientnet_b3film', 'efficientnet_b5film'], help="Which image encoder to use for the BC policy.")
     
     # for LLMs
     parser.add_argument('--command', action='store', type=str, help='comma-separated list of commands', default='', required=False)
@@ -789,4 +832,7 @@ if __name__ == '__main__':
     # variation
     parser.add_argument('--variation', action='store', type=int, default=0, help='the variations of the task', required=False)
     
+    # for gpu
+    parser.add_argument('--gpu', action='store', type=int, help='gpu', default=0, required=False)
+    parser.add_argument('--multi_gpu', action='store_true')
     main(vars(parser.parse_args()))

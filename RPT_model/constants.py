@@ -39,6 +39,20 @@ SIM_TASK_CONFIGS = {
         'num_variation': 1,
         'camera_names': ['wrist']
     },
+    'lamp_on':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+        'dataset_dir': DATA_DIR + '/lamp_on/variation0', # 单个颜色
+        'episode_len': 30, # 是一个平均值
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
+    'lift_numbered_block':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+        'dataset_dir': DATA_DIR + '/lift_numbered_block/variation0', # 单个颜色
+        'episode_len': 35, # 是一个平均值
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
 }
 
 ### Simulation envs fixed constants
