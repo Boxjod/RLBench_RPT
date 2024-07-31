@@ -383,56 +383,6 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
                 all_gpos_data = np.concatenate((all_gpos_data, gpos), axis=0)
                 all_action_data = np.concatenate((all_action_data, action), axis=0)
                 
-        #################
-
-    #     # 错误但是正确率挺高的
-    #     if use_diff:
-    #         qpos_diff = [a-b for a,b in zip(qpos, qpos[0])] # 这不是该是change_point吗 # (90,8) - (1,8) => (8,8)
-    #         # print(f"{qpos.shape=}")
-    #         # print(f"{qpos[0].shape=}")
-    #         # print(f"{qpos_diff.shape=}") # (90,8)才是对的
-    #         # print(f"{len(qpos)=}") # (90,8)才是对的
-    #         # print(f"{len(qpos)=}") # (90,8)才是对的
-    #         qpos = np.append(qpos, qpos_diff)                       # 出问题了 # (90,8) + (7,8) = 776  # [:7]
-    #         # print(f"{len(qpos)=}") # (90,8)才是对的
-    #         gpos_diff = [a-b for a,b in zip(gpos, gpos[0])]
-    #         gpos = np.append(gpos, gpos_diff) # [:7]
-    #     all_qpos_data.append(torch.from_numpy(qpos))  # (50, 776)
-    #     all_gpos_data.append(torch.from_numpy(gpos))
-    #     all_action_data.append(torch.from_numpy(action))
-        
-        
-    # # print(f"{all_qpos_data[0].shape=}")
-    
-    # # 错误但是正确率挺高的 (标准化过程涉及到所有关节和位移矢量牵引，计算出来的值，更加泛化？) 【更加泛性的标准差？】
-    # all_qpos_data = torch.stack(all_qpos_data)  # (50, 776)
-    # print(f"{all_qpos_data.shape=}") 
-    
-    # all_gpos_data = torch.stack(all_gpos_data)  # (50, 776)
-    # print(f"{all_gpos_data.shape=}") 
-    
-    # all_action_data = torch.stack(all_action_data) # (50, 90, 8)
-    # print(f"{all_action_data.shape=}") 
-    
-    # # normalize action data
-    # action_mean = all_action_data.mean(dim=[0, 1], keepdim=True) # (1, 1, 8)
-    # print(f"{action_mean.shape=}") 
-    
-    # action_std = all_action_data.std(dim=[0, 1], keepdim=True)  
-    # action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
-    
-    # # normalize qpos data
-    # qpos_mean = all_qpos_data.mean(dim=[0, 1], keepdim=True) # (1, 1)
-    # print(f"{qpos_mean.shape=}") 
-    # qpos_std = all_qpos_data.std(dim=[0, 1], keepdim=True) 
-    # qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
-    
-    # gpos_mean = all_gpos_data.mean(dim=[0, 1], keepdim=True) # (1, 1)
-    # print(f"{gpos_mean.shape=}") 
-    # gpos_std = all_gpos_data.std(dim=[0, 1], keepdim=True)
-    # gpos_std = torch.clip(gpos_std, 1e-2, np.inf) # clipping
-    
-    
     # 更正，反而成功率下降
     all_qpos_data = np.array(all_qpos_data)
     all_gpos_data = np.array(all_gpos_data)
