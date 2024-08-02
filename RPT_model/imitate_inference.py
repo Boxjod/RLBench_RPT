@@ -483,7 +483,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         raw_action = all_actions[:, t % query_frequency]
                         
                 elif config['policy_class'] == "CNNMLP":
-                    raw_action = policy(qpos, gpos, curr_image) 
+                    raw_action = policy(qpos, curr_image) 
                 else:
                     raise NotImplementedError
                 
