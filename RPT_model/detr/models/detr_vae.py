@@ -8,6 +8,15 @@ from torch.autograd import Variable
 from .backbone import build_backbone
 from .transformer import build_transformer, TransformerEncoder, TransformerEncoderLayer
 
+from robomimic.models.base_nets import ResNet18Conv, SpatialSoftmax
+from robomimic.algo.diffusion_policy import (
+    replace_bn_with_gn,
+    ConditionalUnet1D,
+)
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+from detr.models.backbone import FilMedBackbone
+from diffusers.training_utils import EMAModel
+
 import numpy as np
 
 import IPython
@@ -421,10 +430,8 @@ class CNNMLP(nn.Module):
         for cam_id, cam_name in enumerate(self.camera_names):
             features, pos = self.backbones[cam_id](image[:, cam_id])
             features = features[0] # take the last layer feature
-            print(f'{features.shape=}')
             pos = pos[0] # not used
             down_features = self.backbone_down_projs[cam_id](features)
-            print(f'{down_features.shape=}')
             all_cam_features.append(down_features)
         # flatten everything
         flattened_features = []
@@ -432,7 +439,7 @@ class CNNMLP(nn.Module):
             flattened_features.append(cam_feature.reshape([bs, -1]))
         flattened_features = torch.cat(flattened_features, axis=1) # 768 each
         features = torch.cat([flattened_features, qpos], axis=1) # qpos: 14
-        print(f'{features.shape=}')
+        # print(f'{features.shape=}')
         a_hat = self.mlp(features)
         return a_hat
 
@@ -466,7 +473,7 @@ def build_encoder(args):
     return encoder
 
 
-def build(args): # 核心模型部分 称为类VAE模型
+def build_vae(args): # 核心模型部分 称为类VAE模型
     action_dim = args.action_dim #14 # TODO hardcode
     state_dim = args.state_dim
     use_gpos = args.use_gpos
@@ -531,3 +538,219 @@ def build_cnnmlp(args):
 
     return model
 
+
+# Not used in this paper. But leave Diffusion Policy integration here in case anyone is interested.
+# Requires installing https://github.com/ARISE-Initiative/robomimic/tree/r2d2 in src (such that src/robomimic is a valid path)
+# Remember to install extra dependencies: $ pip install -e src/robomimic
+class Diffusion(nn.Module):
+    def __init__(self, backbones, pools, linears, depth_backbones, states_dim, chunk_size,
+                 observation_horizon, action_horizon, num_inference_timesteps,
+                 ema_power, camera_names, lr):
+        """ Initializes the model.
+        Parameters:
+            backbones: torch module of the backbone to be used. See backbone.py
+            transformer: torch module of the transformer architecture. See transformer.py
+            states_dim: robot state dimension of the environment
+            chunk_size: number of object queries, ie detection slot. This is the maximal number of objects
+                         DETR can detect in a single image. For COCO, we recommend 100 queries.
+            aux_loss: True if auxiliary decoding losses (loss at each decoder layer) are to be used.
+        """
+        super().__init__()
+        self.lr = lr
+        self.camera_names = camera_names
+        self.backbones = nn.ModuleList(backbones)
+        self.backbones = replace_bn_with_gn(self.backbones)  # TODO
+        self.pools = nn.ModuleList(pools)
+        self.linears = nn.ModuleList(linears)
+        self.depth_backbones = depth_backbones
+        if depth_backbones is not None:
+            self.depth_backbones = nn.ModuleList(depth_backbones)
+        self.observation_horizon = observation_horizon
+        self.action_horizon = action_horizon
+        self.chunk_size = chunk_size
+        self.num_inference_timesteps = num_inference_timesteps
+        self.ema_power = ema_power
+        self.states_dim = states_dim
+        self.weight_decay = 0
+        self.num_kp = 32
+        self.feature_dimension = 64
+        self.ac_dim = states_dim
+        self.obs_dim = self.feature_dimension * len(self.camera_names) + states_dim  # camera features and proprio
+        self.noise_pred_net = ConditionalUnet1D(
+            input_dim=self.states_dim,
+            global_cond_dim=self.obs_dim * self.observation_horizon
+        )
+        if depth_backbones is not None:
+            nets = nn.ModuleDict({
+                'policy': nn.ModuleDict({
+                    'backbones': self.backbones,
+                    'depth_backbones': self.depth_backbones,
+                    'pools': self.pools,
+                    'linears': self.linears,
+                    'noise_pred_net': self.noise_pred_net
+                })
+            })
+        else:
+            nets = nn.ModuleDict({
+                'policy': nn.ModuleDict({
+                    'backbones': self.backbones,
+                    'pools': self.pools,
+                    'linears': self.linears,
+                    'noise_pred_net': self.noise_pred_net
+                })
+            })
+
+        nets = nets.float().cuda()
+        ENABLE_EMA = False # True
+        if ENABLE_EMA:
+            ema = EMAModel(model=nets, power=self.ema_power)
+        else:
+            ema = None
+        self.nets = nets
+        self.ema = ema
+
+        # setup noise scheduler
+        self.noise_scheduler = DDIMScheduler(
+            num_train_timesteps=50,
+            beta_schedule='squaredcos_cap_v2',
+            clip_sample=True,
+            set_alpha_to_one=True,
+            steps_offset=0,
+            prediction_type='epsilon'
+        )
+        
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(
+            self.nets.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
+        return optimizer
+    
+    def forward(self, image, depth_image, robot_state, actions=None, action_is_pad=None):
+        B = robot_state.shape[0]
+        if actions is not None:  # training time
+            nets = self.nets
+            all_features = []
+            for cam_id in range(len(self.camera_names)):
+                cam_image = image[:, cam_id]
+                cam_features = nets['policy']['backbones'][cam_id](cam_image)
+                if depth_image is not None:
+                    features_depth = self.depth_backbones[cam_id](depth_image[:, cam_id].unsqueeze(dim=1))
+                    cam_features = torch.cat([cam_features, features_depth], axis=1)
+                pool_features = nets['policy']['pools'][cam_id](cam_features)
+                pool_features = torch.flatten(pool_features, start_dim=1)
+                out_features = nets['policy']['linears'][cam_id](pool_features)
+                all_features.append(out_features)
+            obs_cond = torch.cat(all_features + [robot_state], dim=1)
+
+            # sample noise to add to actions
+            noise = torch.randn(actions.shape, device=obs_cond.device)
+            # sample a diffusion iteration for each data point
+            timesteps = torch.randint(
+                0, self.noise_scheduler.config.num_train_timesteps,
+                (B,), device=obs_cond.device
+            ).long()
+            # add noise to the clean actions according to the noise magnitude at each diffusion iteration
+            # (this is the forward diffusion process)
+            noisy_actions = self.noise_scheduler.add_noise(actions, noise, timesteps)
+            # predict the noise residual
+            noise_pred = nets['policy']['noise_pred_net'](noisy_actions, timesteps, global_cond=obs_cond)
+            if self.ema is not None:
+                self.ema.step(nets)
+                
+            return noise, noise_pred
+        else:
+            To = self.observation_horizon
+            Ta = self.action_horizon
+            Tp = self.chunk_size
+
+            nets = self.nets
+            if self.ema is not None:
+                nets = self.ema.averaged_model
+
+            all_features = []
+            for cam_id in range(len(self.camera_names)):
+                cam_image = image[:, cam_id]
+                cam_features = nets['policy']['backbones'][cam_id](cam_image)
+                if depth_image is not None:
+                    features_depth = self.depth_backbones[cam_id](depth_image[:, cam_id].unsqueeze(dim=1))
+                    cam_features = torch.cat([cam_features, features_depth], axis=1)
+                pool_features = nets['policy']['pools'][cam_id](cam_features)
+                pool_features = torch.flatten(pool_features, start_dim=1)
+                out_features = nets['policy']['linears'][cam_id](pool_features)
+                all_features.append(out_features)
+            obs_cond = torch.cat(all_features + [robot_state], dim=1)
+
+            # initialize action from Guassian noise
+            noisy_action = torch.randn(
+                (B, Tp, self.states_dim), device=obs_cond.device)
+            naction = noisy_action
+            # init scheduler
+            self.noise_scheduler.set_timesteps(self.num_inference_timesteps)
+            for k in self.noise_scheduler.timesteps:
+                # predict noise
+                noise_pred = nets['policy']['noise_pred_net'](
+                    sample=naction,
+                    timestep=k,
+                    global_cond=obs_cond
+                )
+                # inverse diffusion step (remove noise)
+                naction = self.noise_scheduler.step(
+                    model_output=noise_pred,
+                    timestep=k,
+                    sample=naction
+                ).prev_sample
+
+            return naction
+
+    def serialize(self):
+        return {
+            "nets": self.nets.state_dict(),
+            "ema": self.ema.averaged_model.state_dict() if self.ema is not None else None,
+        }
+
+    def deserialize(self, model_dict):
+        status = self.nets.load_state_dict(model_dict["nets"])
+        print('Loaded model')
+        if model_dict.get("ema", None) is not None:
+            print('Loaded EMA')
+            status_ema = self.ema.averaged_model.load_state_dict(model_dict["ema"])
+            status = [status, status_ema]
+        return status
+
+
+def build_diffusion(args):
+    # From state
+    # backbone = None # from state for now, no need for conv nets
+    # From image
+    backbones = []
+    pools = []
+    linears = []
+    depth_backbones = None
+    states_dim = 8
+    
+    for _ in args.camera_names:
+        backbones.append(ResNet18Conv(**{'input_channel': 3, 'pretrained': False, 'input_coord_conv': False}))
+        num_channels = 512
+
+        pools.append(SpatialSoftmax(**{'input_shape': [num_channels, 15, 20], 'num_kp': 32, 'temperature': 1.0,
+                                       'learnable_temperature': False, 'noise_std': 0.0}))
+        linears.append(torch.nn.Linear(int(np.prod([32, 2])), 64))
+
+    model = Diffusion(
+        backbones,
+        pools,
+        linears,
+        depth_backbones,
+        states_dim= states_dim, # args.states_dim,
+        chunk_size=args.chunk_size,
+        observation_horizon=args.observation_horizon,
+        action_horizon=args.action_horizon,
+        num_inference_timesteps=args.num_inference_timesteps,
+        ema_power=args.ema_power,
+        camera_names=args.camera_names,
+        lr = args.lr,
+    )
+
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print("number of parameters: %.2fM" % (n_parameters / 1e6,))
+    return model

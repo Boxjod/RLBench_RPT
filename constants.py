@@ -4,49 +4,49 @@ import pathlib
 
 DATA_DIR = 'Datasets'
 SIM_TASK_CONFIGS = {
-    'sorting_program5':{ #  用imitate_episodes_sawyer4 完整任务学习
+    'sorting_program5':{ #  用imitate_for_action 完整任务学习
         'dataset_dir': DATA_DIR + '/sorting_program5/variation0',# 单个颜色
         'episode_len': 90,
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist'],
     },
-    'push_button':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'push_button':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/push_button/variation0', # 单个颜色
         'episode_len': 30, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'push_buttons':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'push_buttons':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/push_buttons/variation0', # 单个颜色
         'episode_len': 30, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'basketball_in_hoop':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'basketball_in_hoop':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/basketball_in_hoop/variation0', # 单个颜色
         'episode_len': 60, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'phone_on_base':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'phone_on_base':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/phone_on_base/variation0', # 单个颜色
         'episode_len': 60, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'lamp_on':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'lamp_on':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/lamp_on/variation0', # 单个颜色
         'episode_len': 30, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'lift_numbered_block':{ # 抓取 用imitate_episodes_sawyer4， 3绿色-》红色 
+    'lift_numbered_block':{ # 抓取 用imitate_for_action， 3绿色-》红色 
         'dataset_dir': DATA_DIR + '/lift_numbered_block/variation0', # 单个颜色
         'episode_len': 35, # 是一个平均值
         'num_episodes': 50,

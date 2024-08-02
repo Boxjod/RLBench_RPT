@@ -19,19 +19,16 @@ python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5 # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task push_button # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop # 可以
 
-python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 可以
-python3 RLBench/tools/task_builder_sawyer.py --task lamp_on   # 可以，但有任务重复
-python3 RLBench/tools/task_builder_sawyer.py --task lift_numbered_block # 可以，但有任务重复，视觉要求很高
+python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 可以但，效果很差很差 ×××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task lamp_on   # 可以，但效果比较均一 ×××××××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task lift_numbered_block # 可以，但有任务重复，视觉要求很高 ××××××××××××××
 
 python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # 可以，很有难度
 
-
-
-
 # 演示数据集生成    
-python3 RLBench/tools/dataset_generator_sawyer_act3.py \
+python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks lift_numbered_block \
+    --tasks sorting_program5 \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -41,38 +38,47 @@ python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/sorting_program5/
 # 修改数据集
 python3 RPT_model/mod_datasets.py
 
+# ACT
+python RPT_model/imitate_for_action.py \
+    --task_name sorting_program5 \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0
+
 # CNNMLP
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class CNNMLP --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18
     
-    
-    
-python RPT_model/imitate_episodes_sawyer4.py \
+# Diffusion Policy
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class Diffusion --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18
     
+    
+    
+    
 ## train and eval
 ###########################################################################################################################
 # 任务close_jar
 
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name push_button \
     --ckpt_dir Trainings \
     --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name push_button \
     --ckpt_dir Trainings \
     --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
@@ -83,163 +89,163 @@ python RPT_model/imitate_episodes_sawyer4.py \
     
 ######################################################
 # 完整任务学习
-python3 RLBench/tools/dataset_generator_sawyer_act3.py \
+python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
     --tasks sorting_program5 \
     --variations 1 \
     --episodes_per_task 50 \
     ;\
     
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 2000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 2000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 3000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 3000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 4000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 4000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 5000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 5000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 6000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 6000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 7000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 7000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 8000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 8000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 9000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 9000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 10000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 10000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 11000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 11000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 12000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
-python RPT_model/imitate_episodes_sawyer4.py \
+python RPT_model/imitate_for_action.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \

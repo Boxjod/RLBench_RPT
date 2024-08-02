@@ -1,13 +1,13 @@
 #######################################
 # # 加入FiLM的单步训练和推理
-# python act2/imitate_episodes_sawyer4.py \
+# python act2/imitate_for_action.py \
 #     --task_name sorting_program21 \
 #     --ckpt_dir Trainings \
 #     --policy_class ACT --kl_weight 10 --chunk_size 10 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
 #     --num_epochs 5000  --lr 1e-5 --seed 0 --backbone efficientnet_b0film \
 #     --use_language --language_encoder distilbert \
 #     ; \
-# python act2/imitate_episodes_sawyer4.py \
+# python act2/imitate_for_action.py \
 #     --task_name sorting_program21 \
 #     --ckpt_dir Trainings \
 #     --policy_class ACT --kl_weight 10 --chunk_size 10 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
@@ -88,12 +88,12 @@ def main(args):
     # 初始参数 ACT3
     action_dim = 8 # 输出的姿态 7+1
     
-    if 'ACT0' in policy_class: # 最原始的参数 对应的数据集不同
-        action_is_qpos = True
-        use_gpos = False
-        state_dim =  8 
+    # if 'ACT0' in policy_class: # 最原始的参数 对应的数据集不同
+    #     action_is_qpos = True
+    #     use_gpos = False
+    #     state_dim =  8 
         
-    elif 'ACT1' in policy_class: # qpos => gpos 1
+    if 'ACT1' in policy_class: # qpos => gpos 1
         action_is_qpos = False
         use_gpos = False 
         state_dim =  8
@@ -103,10 +103,14 @@ def main(args):
         use_gpos = True # True
         state_dim =  8 
         
-    else: # 'ACT3' in policy_class: # (qpos+qdiff)+(gpos+gdiff)=> gpos 3 (默认)
+    elif 'ACT3' in policy_class: #  # (qpos+qdiff)+(gpos+gdiff)=> gpos 3
         action_is_qpos = False 
         use_gpos = True 
         state_dim =  15 
+    else: # basic model
+        action_is_qpos = True
+        use_gpos = False
+        state_dim =  8 
     
     lr_backbone = 1e-5
     backbone = args['backbone']
@@ -139,11 +143,12 @@ def main(args):
         policy_config = {
             "lr": args["lr"],
             "camera_names": camera_names,
-            "action_dim": 14,
+            "action_dim": action_dim,
+            'weight_decay': args['weight_decay'],
             "observation_horizon": 1,
             "action_horizon": 8,  # TODO not used
             "prediction_horizon": args["chunk_size"],
-            "num_queries": args["chunk_size"],
+            "chunk_size": args["chunk_size"],
             "num_inference_timesteps": 10,
             "ema_power": 0.75,
             "vq": False,
@@ -439,10 +444,14 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         
                         if not use_gpos:
                             gpos = None    
-                        all_actions, image_feature = policy(qpos, gpos, curr_image, 
-                                            history_image_feature, history_action_numpy, is_pad_history=is_pad_history, 
-                                            actions=None, is_pad_action=None, command_embedding=command_embedding) # 100帧才预测一次，# 没有提供 action 数据，是验证模式
                         
+                        if 'ACT' in config['policy_class']:
+                            all_actions, image_feature = policy(qpos, gpos, curr_image, 
+                                                history_image_feature, history_action_numpy, is_pad_history=is_pad_history, 
+                                                actions=None, is_pad_action=None, command_embedding=command_embedding) # 100帧才预测一次，# 没有提供 action 数据，是验证模式
+                        if 'Diffusion' in config['policy_class']:
+                             all_actions = policy(qpos, curr_image, actions=None, is_pad=None, command_embedding=command_embedding)
+
                         language_correction = False
                         if use_language:
                             prefix = "user" if language_correction else "prediction"
@@ -474,11 +483,11 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 raw_action = raw_action.squeeze(0).cpu().numpy()
                 action = post_process(raw_action)  # 就是因为这个的保护和限制，所以初始化位置不能随意改变
                 # target_qpos = action
-
-                history_action = np.insert(history_action, 0, action, axis=0)[:num_queries]
                 
-                history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:num_queries]
-                history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:num_queries]
+                if 'ACT' in config['policy_class']:
+                    history_action = np.insert(history_action, 0, action, axis=0)[:num_queries]
+                    history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:num_queries]
+                    history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:num_queries]
                 
                 ###################################################
                 # 将action_diff作为action
@@ -658,8 +667,11 @@ def forward_pass(data, policy, policy_class=None, use_gpos=True, use_language=Fa
         gpos_data = None
         if 'ACT' in policy_class:
             return policy(qpos_data, gpos_data, image_data, history_images_data, history_action_data, is_pad_history, action_data, is_pad_action, command_embedding) # TODO remove None # 提供了action data 不是训练模式
-        else:
-            policy(qpos_data, image_data, action_data, is_pad_action, command_embedding)
+        elif 'Diffusion' in policy_class:
+            return policy(image_data, None, qpos_data, action_data, is_pad_action)
+        
+        elif 'CNNMLP' in policy_class:
+            return policy(qpos_data, image_data, action_data, is_pad_action, command_embedding)
 
 
 def train_bc(train_dataloader, val_dataloader, config):
@@ -719,7 +731,8 @@ def train_bc(train_dataloader, val_dataloader, config):
                 forward_dict = forward_pass(data, policy, policy_class=policy_class, use_gpos=use_gpos, use_language=use_language) # 前向传播！！
                 # 为什么验证的时候要做前向传播呢？？  ===》在policy在eval模式下，权重不会做更新，在eval的时候做前向传播是为了计算loss
                 epoch_dicts.append(forward_dict)
-                
+            
+            # print(f'{forward_dict=}')
             epoch_summary = compute_dict_mean(epoch_dicts) # 计算 epoch 的 eval 平均数
             validation_history.append(epoch_summary)
 
@@ -835,4 +848,5 @@ if __name__ == '__main__':
     # for gpu
     parser.add_argument('--gpu', action='store', type=int, help='gpu', default=0, required=False)
     parser.add_argument('--multi_gpu', action='store_true')
+    parser.add_argument('--weight_decay', default=1e-4, type=float)
     main(vars(parser.parse_args()))
