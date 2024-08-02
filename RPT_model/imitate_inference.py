@@ -145,6 +145,7 @@ def main(args):
             'state_dim': state_dim,
             "camera_names": camera_names,
             "action_dim": action_dim,
+            'action_dim': action_dim,
             'weight_decay': args['weight_decay'],
             "observation_horizon": 1,
             "action_horizon": 8,  # TODO not used
@@ -161,6 +162,7 @@ def main(args):
         policy_config = {
             "lr": args["lr"],
             'state_dim': state_dim,
+            'action_dim': action_dim,
             "lr_backbone": lr_backbone,
             "backbone": backbone,
             "num_queries": 1,
