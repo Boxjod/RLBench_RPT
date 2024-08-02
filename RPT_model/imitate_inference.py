@@ -142,6 +142,7 @@ def main(args):
     elif policy_class == "Diffusion":
         policy_config = {
             "lr": args["lr"],
+            'state_dim': state_dim,
             "camera_names": camera_names,
             "action_dim": action_dim,
             'weight_decay': args['weight_decay'],
@@ -159,6 +160,7 @@ def main(args):
     elif policy_class == "CNNMLP":
         policy_config = {
             "lr": args["lr"],
+            'state_dim': state_dim,
             "lr_backbone": lr_backbone,
             "backbone": backbone,
             "num_queries": 1,
