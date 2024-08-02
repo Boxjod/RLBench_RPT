@@ -355,6 +355,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         
     ##########################################################################################################
     max_timesteps = int(max_timesteps * 1.0) # may increase for real-world tasks
+    if config['policy_class'] == "CNNMLP":
+        max_timesteps = int(max_timesteps * 1.5) 
     # max_timesteps = 45
     ##########################################################################################################
     
@@ -458,7 +460,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                                                 history_image_feature, history_action_numpy, is_pad_history=is_pad_history, 
                                                 actions=None, is_pad_action=None, command_embedding=command_embedding) # 100帧才预测一次，# 没有提供 action 数据，是验证模式
                         if 'Diffusion' in config['policy_class']:
-                             all_actions = policy(image_data, None, qpos_data)
+                             all_actions = policy(curr_image, None, qpos)
                              
 
                         language_correction = False
@@ -505,19 +507,32 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 # target_gpos= [obs.gripper_pose + gpos_diff]
                 # action = np.append(target_gpos, action[7])
                 # print(f"{action=}")
+                gripper_state = action[7]
+                print(f"{timestep}:{action[7]=}")
                 
                 if action_is_qpos:# 将qpos作为action
                     ts_obs, reward, terminate = env.step(action)
                     qpos_list.append(qpos_numpy)
                     target_gpos_list.append(action)
                     rewards.append(reward) # 由仿真环境 step 产生 reward：0，1，2，3，4，4代表全部成功
+                    if config['policy_class'] == "CNNMLP":
+                        if gripper_state < 0.85 and gripper_flag < 2 : # 适合步骤1 夹取
+                            gripper_flag = gripper_flag + 2 # 留出一帧错误
+                            done = env._robot.gripper.actuate(0, 1.0)
+                        elif gripper_state > 1.0 and gripper_flag == 2 :# 适合步骤1 夹取
+                            print(timestep, ": open_gripper: ", gripper_state)
+                            gripper_flag = gripper_flag + 1
+                            while done != True:
+                                done = env._robot.gripper.actuate(1, 0.4)
+                                env._scene.step() # Scene 步进
+                            
                 else:# 将gpos作为action
                     try:
                         next_gripper_position = action[0:3] # next 
                         next_gripper_quaternion = action[3:7]
                         path.append(env._robot.arm.get_linear_path(position=next_gripper_position, quaternion=next_gripper_quaternion, steps=10, relative_to=env._robot.arm, ignore_collisions=True))
                         gripper_state = action[7]
-                        # print(f"{timestep}:{gripper_state=}")
+                        print(f"{timestep}:{gripper_state=}")
                         # 夹爪控制###############################################################################################
                         done = False
                         if task_name =="sorting_program5" or task_name =="close_jar":
