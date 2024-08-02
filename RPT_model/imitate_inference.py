@@ -458,7 +458,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                                                 history_image_feature, history_action_numpy, is_pad_history=is_pad_history, 
                                                 actions=None, is_pad_action=None, command_embedding=command_embedding) # 100帧才预测一次，# 没有提供 action 数据，是验证模式
                         if 'Diffusion' in config['policy_class']:
-                             all_actions = policy(qpos, curr_image, actions=None, is_pad=None, command_embedding=command_embedding)
+                             all_actions = policy(image_data, None, qpos_data)
+                             
 
                         language_correction = False
                         if use_language:
