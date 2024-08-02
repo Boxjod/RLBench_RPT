@@ -144,8 +144,6 @@ def main(args):
             "lr": args["lr"],
             'state_dim': state_dim,
             "camera_names": camera_names,
-            "action_dim": action_dim,
-            'action_dim': action_dim,
             'weight_decay': args['weight_decay'],
             "observation_horizon": 1,
             "action_horizon": 8,  # TODO not used
@@ -157,16 +155,22 @@ def main(args):
             "backbone": backbone,
             "multi_gpu": multi_gpu,
             "is_eval": is_eval,
+            'state_dim': state_dim,
+            
+            'action_dim': action_dim,
+            'hidden_dim': args['hidden_dim'],
         }
     elif policy_class == "CNNMLP":
         policy_config = {
             "lr": args["lr"],
-            'state_dim': state_dim,
-            'action_dim': action_dim,
             "lr_backbone": lr_backbone,
             "backbone": backbone,
             "num_queries": 1,
             "camera_names": camera_names,
+            
+            'state_dim': state_dim,
+            'action_dim': action_dim,
+            'hidden_dim': args['hidden_dim'],
         }
     else:
         raise NotImplementedError
