@@ -1,13 +1,13 @@
 #######################################
 # # 加入FiLM的单步训练和推理
-# python act2/imitate_for_action.py \
+# python act2/imitate_inference.py \
 #     --task_name sorting_program21 \
 #     --ckpt_dir Trainings \
 #     --policy_class ACT --kl_weight 10 --chunk_size 10 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
 #     --num_epochs 5000  --lr 1e-5 --seed 0 --backbone efficientnet_b0film \
 #     --use_language --language_encoder distilbert \
 #     ; \
-# python act2/imitate_for_action.py \
+# python act2/imitate_inference.py \
 #     --task_name sorting_program21 \
 #     --ckpt_dir Trainings \
 #     --policy_class ACT --kl_weight 10 --chunk_size 10 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
