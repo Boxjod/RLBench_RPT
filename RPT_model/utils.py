@@ -389,38 +389,29 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
     all_action_data = np.array(all_action_data)
     
     all_qpos_data = torch.from_numpy(all_qpos_data) # 姿态要求不高
-    print(f"{all_qpos_data.shape=}") 
     all_gpos_data = torch.from_numpy(all_gpos_data) # 姿态要求不高
-    print(f"{all_gpos_data.shape=}") 
     all_action_data = torch.from_numpy(all_action_data) # 动作精度要求高
-    print(f"{all_action_data.shape=}") 
 
     # normalize action data
     action_mean = all_action_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]
-    print(f"{action_mean.shape=}") 
     action_std = all_action_data.std(dim=0, keepdim=True).unsqueeze(0)
     action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
     
     # normalize qpos data
     if use_diff: 
-        qpos_mean = all_qpos_data.mean(dim=[0, 1], keepdim=True).unsqueeze(0) # [1, 1, 1]
-        print(f"{qpos_mean.shape=}")    
+        qpos_mean = all_qpos_data.mean(dim=[0, 1], keepdim=True).unsqueeze(0) # [1, 1, 1] 
         qpos_std = all_qpos_data.std(dim=[0, 1], keepdim=True).unsqueeze(0)
         qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
         
         gpos_mean = all_gpos_data.mean(dim=[0, 1], keepdim=True).unsqueeze(0) # [1, 1, 1]
-        print(f"{gpos_mean.shape=}") 
         gpos_std = all_gpos_data.std(dim=[0, 1], keepdim=True).unsqueeze(0)
         gpos_std = torch.clip(gpos_std, 1e-2, np.inf) # clipping
-        # print(f"{gpos_mean=}")
     else:
-        qpos_mean = all_qpos_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]
-        print(f"{qpos_mean.shape=}")    
+        qpos_mean = all_qpos_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]  
         qpos_std = all_qpos_data.std(dim=0, keepdim=True).unsqueeze(0)
         qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
         
         gpos_mean = all_gpos_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]
-        print(f"{gpos_mean.shape=}") 
         gpos_std = all_gpos_data.std(dim=0, keepdim=True).unsqueeze(0)
         gpos_std = torch.clip(gpos_std, 1e-2, np.inf) # clipping
         

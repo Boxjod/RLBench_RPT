@@ -59,8 +59,6 @@ python RPT_model/imitate_inference.py \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18
     
     
-    
-    
 ## train and eval
 ###########################################################################################################################
 # 任务close_jar
