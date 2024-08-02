@@ -3,18 +3,18 @@
 ############################### RPT ###############################
 
 # 改变分辨率，生成480x640，推理也用480x640
-python3 RLBench/tools/dataset_generator_hdf5.py \
-    --save_path Datasets \
-    --tasks sorting_program5 \
-    --variations 1 \
-    --episodes_per_task 50
+# python3 RLBench/tools/dataset_generator_hdf5.py \
+#     --save_path Datasets \
+#     --tasks sorting_program5 \
+#     --variations 1 \
+#     --episodes_per_task 50
 
-task_name=("sorting_program5")
+task_name=("sorting_program5" )
 model_type=(CNNMLP Diffusion ACT0E0 ACT3E2 )
 epoch_list=(1000 2000 3000 4000 5000 6000 7000 8000)
 backbone_list=("efficientnet_b0")
 chunk_size=(20 30)
-for task in $(task_name[@])
+for task in ${task_name[@]}
   do
   for model in ${model_type[@]}
     do
