@@ -1,6 +1,7 @@
 # 服务器训练
 conda activate rlbench_rpt
 cd ~/workspace/RLBench_RPT
+. do_server.sh
 
 # git需要更新秘钥时：
 git config --global --replace-all user.password "要修改的密码"
@@ -18,6 +19,7 @@ bash /home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/coppeliaSim.sh
 python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5 # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task push_button # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop # 可以
+
 
 python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 可以但，效果很差很差 ×××××××××
 python3 RLBench/tools/task_builder_sawyer.py --task lamp_on   # 可以，但效果比较均一 ×××××××××××××
