@@ -27,7 +27,7 @@ python3 RLBench/tools/task_builder_sawyer.py --task lift_numbered_block # 可以
 python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # 可以，很有难度 ××××××××××××××
 
 python3 RLBench/tools/task_builder_sawyer.py --task meat_off_grill
-python3 RLBench/tools/task_builder_sawyer.py --task put_rubbish_in_bin
+python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 
 # 演示数据集生成    
 python3 RLBench/tools/dataset_generator_hdf5.py \

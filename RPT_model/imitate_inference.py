@@ -508,7 +508,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 # action = np.append(target_gpos, action[7])
                 # print(f"{action=}")
                 gripper_state = action[7]
-                print(f"{timestep}:{action[7]=}")
+                # print(f"{timestep}:{action[7]=}")
                 
                 if action_is_qpos:# 将qpos作为action
                     ts_obs, reward, terminate = env.step(action)
