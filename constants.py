@@ -32,9 +32,9 @@ SIM_TASK_CONFIGS = {
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'phone_on_base':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/phone_on_base/variation0', # 单个颜色
-        'episode_len': 60, # 是一个平均值
+    'meat_off_grill':{ # 抓取 用imitate_inference， 3绿色-》红色 
+        'dataset_dir': DATA_DIR + '/meat_off_grill/variation0', # 单个颜色
+        'episode_len': 70, # 是一个平均值
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']

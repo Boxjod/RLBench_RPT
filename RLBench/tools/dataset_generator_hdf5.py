@@ -43,7 +43,7 @@ flags.DEFINE_string('save_path',
                     'Where to save the demos.')
 flags.DEFINE_list('tasks', [],
                   'The tasks to collect. If empty, all tasks are collected.')
-flags.DEFINE_list('image_size', [640, 480],# [128, 128], ACT是读取的 [height x width]，coppliasim是 [width x height]
+flags.DEFINE_list('image_size', [160, 120], # 640, 480 [128, 128], ACT是读取的 [height x width]，coppliasim是 [width x height]
                   'The size of the images tp save.')
 flags.DEFINE_enum('renderer',  'opengl3', ['opengl', 'opengl3'],
                   'The renderer to use. opengl does not include shadows, '
@@ -141,9 +141,9 @@ def save_demo(demo, example_path, ex_idx):
         action_qpos = root.create_dataset('action_qpos', (max_timesteps, 8))
         obs = root.create_group('observations')
         image = obs.create_group('images')
-        image.create_dataset('wrist', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) 
-        image.create_dataset('wrist_depth', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) 
-        image.create_dataset('head', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) 
+        image.create_dataset('wrist', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) # 640, 480 160, 120, 120, 160
+        image.create_dataset('wrist_depth', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) 
+        image.create_dataset('head', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) 
         qpos = obs.create_dataset('qpos', (max_timesteps, 8))
         gpos = obs.create_dataset('gpos', (max_timesteps, 8))
         
