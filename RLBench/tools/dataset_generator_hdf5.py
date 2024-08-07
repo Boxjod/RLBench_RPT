@@ -31,19 +31,18 @@ from RPT_model.constants import SIM_TASK_CONFIGS
 import json
 import cv2
 
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" # 必须要这个才可以import cv2
+os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" 
 if socket.gethostname() != 'XJ':
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/arx-4090/workspace/CoppeliaSim"
 
 FLAGS = flags.FLAGS
 
-# 使用还是 --tasks reach_target
 flags.DEFINE_string('save_path',
-                    '/tmp/rlbench_data/', # 默认位置
+                    '/tmp/rlbench_data/',
                     'Where to save the demos.')
 flags.DEFINE_list('tasks', [],
                   'The tasks to collect. If empty, all tasks are collected.')
-flags.DEFINE_list('image_size', [160, 120], # 640, 480 [128, 128], ACT是读取的 [height x width]，coppliasim是 [width x height]
+flags.DEFINE_list('image_size', [160, 120], # 640, 480 [128, 128],  [height x width]，coppliasim是 [width x height]
                   'The size of the images tp save.')
 flags.DEFINE_enum('renderer',  'opengl3', ['opengl', 'opengl3'],
                   'The renderer to use. opengl does not include shadows, '
@@ -56,15 +55,13 @@ flags.DEFINE_integer('variations', -1,
                      'Number of variations to collect per task. -1 for all.')
 flags.DEFINE_string('encode_command', 'distilbert',
                      'If directly generate the command encoder.')
-# flags.DEFINE_integer('episode_len', 0, # in our code this is read from constants
-#                      'the lenght of one episode, means how many steps of one episode. if not assign, not strict for the steps of generate')
 
 np.set_printoptions(linewidth=200)
 
 def create_commands_json_files(data_dir, demo_commands, start_episode, episode_num, steps_len):
     print(f"{demo_commands=}")
     
-    if(len(demo_commands) > 4): # 如果是分段指令控制的演示任务
+    if(len(demo_commands) > 4): 
         print("demo_command is complex")
         start_step = start_episode
         commands = {}
@@ -73,13 +70,13 @@ def create_commands_json_files(data_dir, demo_commands, start_episode, episode_n
             commands[demo_commands[i]] = list(range(start_step, start_step + demo_commands[i+1]))
             start_step = start_step + demo_commands[i+1]
             
-    else: # 如果是一般的任务
-        demo_command = demo_commands[0] # 暂时只用一个，送了两个进来，可以把任务的两个步骤，分成数组进来
+    else:
+        demo_command = demo_commands[0] 
         commands = {demo_command: list(range(start_episode, start_episode + episode_num))}
     
     print(f"{commands=}")
     
-    for command, indices in commands.items(): # 原始的这个是不同的文件不同的任务，不是同一个任务当中有不同的步骤
+    for command, indices in commands.items(): 
         for idx in indices:
             episode_filename = os.path.join(data_dir, f"episode_{idx}.json")
             episode_content = [{"command": command, "start_timestep": 0, "end_timestep": steps_len-1, "type": "instruction", }]
@@ -110,10 +107,10 @@ def save_demo(demo, example_path, ex_idx):
         
         # print(f'{i=}:{obs.gripper_open=}')
         
-        if i != 0: # action是下一步的姿态 # 是 gpos的运动去向(xyz的变化)
+        if i != 0: 
             data_dict['/action'].append(np.append(obs.gripper_pose, obs.gripper_open))
             data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
-            # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 #* 100)//100 # 减去上一时刻的gpos
+            # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 #* 100)//100 
             # data_dict['/action'].append(np.append(diff_gpos, obs.gripper_open))
            
         data_dict['/observations/images/wrist'].append(obs.wrist_rgb) # 480， 640， 3
@@ -129,14 +126,14 @@ def save_demo(demo, example_path, ex_idx):
         data_dict['/observations/qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
         data_dict['/observations/gpos'].append(np.append(obs.gripper_pose, obs.gripper_open))
         
-    # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 # * 100)//100 # 减去上一时刻的gpos
+    # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 # * 100)//100 
     data_dict['/action'].append(np.append(obs.gripper_pose,obs.gripper_open))
     data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
     dataset_path = os.path.join(example_path, f'episode_{ex_idx}') # save path
     check_and_make(example_path)
     
     with h5py.File(dataset_path + '.hdf5', 'w', rdcc_nbytes=1024 ** 2 * 2) as root: 
-        root.attrs['sim'] = True # 根目录 
+        root.attrs['sim'] = True 
         action = root.create_dataset('action', (max_timesteps, 8))
         action_qpos = root.create_dataset('action_qpos', (max_timesteps, 8))
         obs = root.create_group('observations')
@@ -156,7 +153,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
     all the episodes_per_task for that variation."""
 
     # Initialise each thread with random seed
-    np.random.seed(10) # 确定生成的演示都是一样的（避免服务器和本机的差距），但是可能一直都不好
+    np.random.seed(10) 
 
     num_tasks = len(tasks)
     img_size = list(map(int, FLAGS.image_size))
@@ -181,7 +178,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
     if socket.gethostname() != 'XJ':
         headless_val = True
     
-    rlbench_env = Environment( # 训练数据生成是使用的构建的场景
+    rlbench_env = Environment( 
         action_mode=MoveArmThenGripper(JointVelocity(), Discrete()),
         obs_config=obs_config,
         headless=headless_val,
@@ -237,7 +234,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
             print('Process', i, '// Task:', task_env.get_name(),
                   '// Variation:', my_variation_count, '// Demo:', ex_idx)
             
-            attempts = 10 # 每次episode给10次机会，但每一个demo默认又有10次机会，一共一个episode由100次机会
+            attempts = 10 
 
             task_config = SIM_TASK_CONFIGS[FLAGS.tasks[0]]
             episode_len = task_config['episode_len']

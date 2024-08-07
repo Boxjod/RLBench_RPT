@@ -4,55 +4,35 @@ import pathlib
 
 DATA_DIR = 'Datasets'
 SIM_TASK_CONFIGS = {
-    'sorting_program5':{ #  用imitate_inference 完整任务学习
-        'dataset_dir': DATA_DIR + '/sorting_program5/variation0',# 单个颜色
+    'sorting_program5':{ 
+        'dataset_dir': DATA_DIR + '/sorting_program5/variation0',
         'episode_len': 90,
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist'],
     },
-    'push_button':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/push_button/variation0', # 单个颜色
-        'episode_len': 30, # 是一个平均值
+    'push_button':{ 
+        'dataset_dir': DATA_DIR + '/push_button/variation0', 
+        'episode_len': 30, 
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'push_buttons':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/push_buttons/variation0', # 单个颜色
-        'episode_len': 30, # 是一个平均值
+    'basketball_in_hoop':{ 
+        'dataset_dir': DATA_DIR + '/basketball_in_hoop/variation0', 
+        'episode_len': 60,
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'basketball_in_hoop':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/basketball_in_hoop/variation0', # 单个颜色
-        'episode_len': 60, # 是一个平均值
+    'meat_off_grill':{ 
+        'dataset_dir': DATA_DIR + '/meat_off_grill/variation0', 
+        'episode_len': 70, 
         'num_episodes': 50,
         'num_variation': 1,
         'camera_names': ['wrist']
     },
-    'meat_off_grill':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/meat_off_grill/variation0', # 单个颜色
-        'episode_len': 70, # 是一个平均值
-        'num_episodes': 50,
-        'num_variation': 1,
-        'camera_names': ['wrist']
-    },
-    'lamp_on':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/lamp_on/variation0', # 单个颜色
-        'episode_len': 30, # 是一个平均值
-        'num_episodes': 50,
-        'num_variation': 1,
-        'camera_names': ['wrist']
-    },
-    'lift_numbered_block':{ # 抓取 用imitate_inference， 3绿色-》红色 
-        'dataset_dir': DATA_DIR + '/lift_numbered_block/variation0', # 单个颜色
-        'episode_len': 35, # 是一个平均值
-        'num_episodes': 50,
-        'num_variation': 1,
-        'camera_names': ['wrist']
-    },
+
 }
 
 ### Simulation envs fixed constants

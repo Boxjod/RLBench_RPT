@@ -8,7 +8,7 @@ from rlbench.backend.utils import task_file_to_task_class
 from rlbench.environment import Environment
 from rlbench.backend.exceptions import *
 import os, socket
-BOX_POSE = [None] # to be changed from outside # 工作区间里面随机小球出现的boundary
+BOX_POSE = [None] # to be changed from outside 
 
 def make_sim_env(task_name):
     """
@@ -32,8 +32,7 @@ def make_sim_env(task_name):
     if socket.gethostname() != 'XJ':
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/arx-4090/workspace/CoppeliaSim"
     
-    # 1. 设置仿真环境的配置文件
-    img_size = [640, 480] # 图片格式大小  # 640, 480 # 160, 120
+    img_size = [640, 480] # 640, 480 # 160, 120
     
     obs_config = ObservationConfig()
     
@@ -52,7 +51,6 @@ def make_sim_env(task_name):
     if socket.gethostname() != 'XJ':
         headless_val = True
         
-    # 2. 启动环境
     rlbench_env = Environment(
         action_mode=MoveArmThenGripper(JointPosition(), Discrete()),
         obs_config=obs_config,
@@ -62,7 +60,6 @@ def make_sim_env(task_name):
     rlbench_env.launch()
     rlbench_env._pyrep.step_ui()
 
-    # 3. 挂载任务
     task_class = task_file_to_task_class(task_name)
     task_env = rlbench_env.get_task(task_class) # Type[Task]) -> TaskEnvironment（include scene）
     var_target = task_env.variation_count()

@@ -52,7 +52,7 @@ def get_args_parser():
 
     # repeat args in imitate_episodes just to avoid error. Will not be used
     parser.add_argument('--eval', action='store_true')
-    parser.add_argument('--num_verification',  default=50, type=int, help='number of verification') # 验证次数
+    parser.add_argument('--num_verification',  default=50, type=int, help='number of verification')
     parser.add_argument('--onscreen_render', action='store_true')
     parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=False)
     parser.add_argument('--policy_class', action='store', type=str, help='policy_class, capitalize', required=False)
@@ -73,7 +73,6 @@ def get_args_parser():
     parser.add_argument("--target_color", type=str, default="red",help="the target color to pick up", required=False)
     parser.add_argument("--box_color", type=str, default="red", help="the box color which to put down the picked target  block", required=False)
     return parser
-
 
 def build_ACT_model_and_optimizer(args_override):
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
@@ -96,7 +95,6 @@ def build_ACT_model_and_optimizer(args_override):
                                   weight_decay=args.weight_decay)
 
     return model, optimizer
-
 
 def build_CNNMLP_model_and_optimizer(args_override):
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
