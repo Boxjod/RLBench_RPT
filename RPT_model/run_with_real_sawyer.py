@@ -65,7 +65,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
   post_process = lambda a: a * stats['action_std'] + stats['action_mean']
   
   query_frequency = 1
-  num_queries = 20 # chunking_size ################################
+  chunk_size = 20 # chunking_size ################################
   action_dim = 8
   hidden_dim = 512
   
@@ -73,7 +73,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
     max_timesteps = int(max_timesteps * 2.4)  # 做一个scale ##############################################################
   elif task_name == 'sorting_program_sawyer22':
     max_timesteps = int(max_timesteps * 2.0)  # 做一个scale ##############################################################
-  all_time_actions = torch.zeros([max_timesteps, max_timesteps+num_queries, 8]).cuda() ## 输出8维，但是输入时15维度
+  all_time_actions = torch.zeros([max_timesteps, max_timesteps+chunk_size, 8]).cuda() ## 输出8维，但是输入时15维度
   image_list = [] # for visualization
   
   tray_defaul_waypoint = {'right_j0': 0.0568505859375, 'right_j1': -0.1841328125, 'right_j2': -0.0026962890625, 'right_j3': 0.8043798828125, 'right_j4': -0.019640625, 'right_j5': 0.950361328125, 'right_j6': -1.4002099609375}
@@ -179,7 +179,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
           elif c == '1':
             if task_name == 'sorting_program_sawyer21':
               go_to_initial_position()
-              all_time_actions = torch.zeros([max_timesteps, max_timesteps+num_queries, 8]).cuda() ## 输出8维，但是输入时15维度
+              all_time_actions = torch.zeros([max_timesteps, max_timesteps+chunk_size, 8]).cuda() ## 输出8维，但是输入时15维度
               print("retest the step 1")
               timestep = 0
               subscriber_control(1)
@@ -208,8 +208,8 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
               print("这里还是执行了")
               sys.exit()
       
-  history_action = np.zeros((num_queries,) + (action_dim,), dtype=np.float32)
-  history_image_feature = np.zeros((2,num_queries,) + (hidden_dim,), dtype=np.float32)
+  history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+  history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
   
   def policy_model_calc(policy, curr_image, qpos_current, qpos_diff, gpos_current, gpos_diff):
     nonlocal history_action, history_image_feature, max_timesteps, timestep
@@ -245,7 +245,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
                              command_embedding=command_embedding) # 100帧才预测一次，# 没有提供 action 数据，是验证模式
         
 
-      all_time_actions[[timestep], timestep: timestep+num_queries] = all_actions
+      all_time_actions[[timestep], timestep: timestep+chunk_size] = all_actions
       actions_for_curr_step = all_time_actions[:, timestep]
       
       actions_populated = torch.all(actions_for_curr_step != 0, axis=1)
@@ -261,9 +261,9 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
       action = post_process(raw_action)  # 就是因为这个的保护和限制，所以初始化位置不能随意改变
       go_to_next_gpos(action)   
       
-      history_action = np.insert(history_action, 0, action, axis=0)[:num_queries]
-      history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:num_queries]
-      history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:num_queries]
+      history_action = np.insert(history_action, 0, action, axis=0)[:chunk_size]
+      history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:chunk_size]
+      history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:chunk_size]
         
 
   def get_observations(data): # 30Hz
@@ -398,7 +398,7 @@ def buil_model(ckpt_dir, ckpt_name):
   dec_layers = 7
   nheads = 8 # 8头注意力机制
   policy_config = {'lr': learning_rate,
-                    'num_queries': 20,
+                    'chunk_size': 20,
                     'kl_weight': 10,
                     'hidden_dim': 512,
                     'dim_feedforward': 3200,

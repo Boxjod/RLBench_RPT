@@ -33,13 +33,13 @@ class ACTPolicy(nn.Module):
         if actions is not None: # training time
             if len(history_images.shape) > 4:
                 history_images = normalize(history_images)
-                history_images = history_images[:, :self.model.num_queries]
+                history_images = history_images[:, :self.model.chunk_size]
                 
-            history_action = history_action[:, :self.model.num_queries]
-            is_pad_history = is_pad_history[:, :self.model.num_queries]
+            history_action = history_action[:, :self.model.chunk_size]
+            is_pad_history = is_pad_history[:, :self.model.chunk_size]
             
-            actions = actions[:, :self.model.num_queries] # 如果输入的actions queries没有10个怎么办[有pad补充了]
-            is_pad_action = is_pad_action[:, :self.model.num_queries]
+            actions = actions[:, :self.model.chunk_size] # 如果输入的actions queries没有10个怎么办[有pad补充了]
+            is_pad_action = is_pad_action[:, :self.model.chunk_size]
             
             a_hat, is_pad_hat, (mu, logvar) = self.model(qpos, gpos, image, env_state, history_images,
                                                          history_action, is_pad_history=is_pad_history, 
@@ -61,8 +61,8 @@ class ACTPolicy(nn.Module):
             return loss_dict
         else: # inference time
             
-            is_pad_history = is_pad_history[:self.model.num_queries]
-            history_action = history_action[:self.model.num_queries]
+            is_pad_history = is_pad_history[:self.model.chunk_size]
+            history_action = history_action[:self.model.chunk_size]
                      
             a_hat, _, (_, _) , image_feature = self.model(qpos, gpos, image, env_state, history_images, 
                                           history_action, is_pad_history=is_pad_history, 

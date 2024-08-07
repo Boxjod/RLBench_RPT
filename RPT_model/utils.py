@@ -15,7 +15,7 @@ CROP_TOP = True  # hardcode
 FILTER_MISTAKES = False  # Filter out mistakes from the dataset even if not use_language
 
 class  EpisodicDataset(torch.utils.data.Dataset):
-    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats, policy_class, max_len=None, num_queries=None, 
+    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats, policy_class, max_len=None, chunk_size=None, 
                  command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
         super(EpisodicDataset).__init__()
         self.episode_ids = episode_ids if len(episode_ids) > 0 else [0] 
@@ -25,7 +25,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         self.is_sim = None
         
         self.max_len = max_len
-        self.num_queries = num_queries if (num_queries != None) and (num_queries<max_len) else max_len
+        self.chunk_size = chunk_size if (chunk_size != None) and (chunk_size<max_len) else max_len
         
         self.command_list = [cmd.strip("'\"") for cmd in command_list]
         self.use_language = use_language
@@ -39,7 +39,6 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             self.augment_images = True
         else:
             self.augment_images = False
-        self.transformations = None
         
         self.__getitem__(0) # initialize self.is_sim
 
@@ -143,7 +142,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             # get all actions after and including start_ts
     
             action_len = end_ts - start_ts + 1 
-            if action_len <= self.num_queries:
+            if action_len <= self.chunk_size:
 
                 if self.action_is_qpos:
                     action = root['/action_qpos'][start_ts : end_ts + 1]
@@ -152,10 +151,10 @@ class  EpisodicDataset(torch.utils.data.Dataset):
                     
             else:
                 if self.action_is_qpos:
-                    action = root['/action_qpos'][start_ts : start_ts + self.num_queries]
+                    action = root['/action_qpos'][start_ts : start_ts + self.chunk_size]
                 else:
-                    action = root['/action'][start_ts : start_ts + self.num_queries]
-            action_len = min(action_len, self.num_queries)    
+                    action = root['/action'][start_ts : start_ts + self.chunk_size]
+            action_len = min(action_len, self.chunk_size)    
             
             # if is_sim:
             # else: # 其实不需要固定最大长度帧的
@@ -166,79 +165,79 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             history_images = []
             history_image_dict = dict()
 
-            # if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:# 用夹爪状态分割历史
-            qpos_his = root['/observations/qpos'][0:start_ts + 1] # 只需要检测之前状态的改变
-            qpos_his_len = len(qpos_his) # 它会等于0
+            if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:# 用夹爪状态分割历史
+                qpos_his = root['/observations/qpos'][0:start_ts + 1] # 只需要检测之前状态的改变
+                qpos_his_len = len(qpos_his) # 它会等于0
 
-            gripper_state = qpos_his[qpos_his_len-1][7] # 读取了最后的状态
-            gripper_change_point = []
+                gripper_state = qpos_his[qpos_his_len-1][7] # 读取了最后的状态
+                gripper_change_point = []
 
-            for idx in range(qpos_his_len-1, -1, -1): # 倒着来检测夹爪状态变化
-                if gripper_state != qpos_his[idx][7]:
-                    gripper_state = qpos_his[idx][7]
-                    gripper_change_point.append(idx+1)
-                    break
-            gripper_change_point.append(0)
-            # print(f"#####\n当前start_ts = {start_ts}, history_len = {qpos_his_len}, now_state = {gripper_state}, history_change = {gripper_change_point}")
-            
-            change_point = gripper_change_point[0] # 向前推最近的一个夹爪改变点
-            history_action_len = start_ts - change_point + 1 # 如果是20-10 = 10，如果是10，那么+1 =11个动作历史因为有0 
-            # print(f"now_frame = {start_ts}, last_point = {change_point}, history_action_len = {history_action_len}")
-            # now_frame = 34, last_point = 31, history_action_len = 4 这种状态下就可以产生pad的开启新现阶段的效果
-            
-            if start_ts<=(change_point + self.num_queries): 
+                for idx in range(qpos_his_len-1, -1, -1): # 倒着来检测夹爪状态变化
+                    if gripper_state != qpos_his[idx][7]:
+                        gripper_state = qpos_his[idx][7]
+                        gripper_change_point.append(idx+1)
+                        break
+                gripper_change_point.append(0)
+                # print(f"#####\n当前start_ts = {start_ts}, history_len = {qpos_his_len}, now_state = {gripper_state}, history_change = {gripper_change_point}")
                 
-                history_action = root['/action'][change_point : start_ts + 1]
-                for history_idx in range(change_point, start_ts + 1):
-                    for cam_name in self.camera_names:
-                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                    history_images.append(history_image_dict.copy())
-            
-            else: # 距离上一个夹爪分界点，之间的历史长度大于chunking数量，那就取前面这么chunking个
-                history_action = root['/action'][start_ts - self.num_queries : start_ts]
-                for history_idx in range(start_ts - self.num_queries, start_ts + 1):
-                    for cam_name in self.camera_names:
-                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                    history_images.append(history_image_dict.copy())
-            history_action_len = min(history_action_len, self.num_queries)
-            
-            # 更新diff
-            if self.use_diff:
-                qpos = root['/observations/qpos'][start_ts]
-                qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
-                qpos = np.append(qpos, qpos_diff[:7])
+                change_point = gripper_change_point[0] # 向前推最近的一个夹爪改变点
+                history_action_len = start_ts - change_point + 1 # 如果是20-10 = 10，如果是10，那么+1 =11个动作历史因为有0 
+                # print(f"now_frame = {start_ts}, last_point = {change_point}, history_action_len = {history_action_len}")
+                # now_frame = 34, last_point = 31, history_action_len = 4 这种状态下就可以产生pad的开启新现阶段的效果
                 
-                gpos = root['/observations/gpos'][start_ts]
-                gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
-                gpos = np.append(gpos, gpos_diff[:7])
+                if start_ts<=(change_point + self.chunk_size): 
+                    
+                    history_action = root['/action'][change_point : start_ts + 1]
+                    for history_idx in range(change_point, start_ts + 1):
+                        for cam_name in self.camera_names:
+                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                        history_images.append(history_image_dict.copy())
+                
+                else: # 距离上一个夹爪分界点，之间的历史长度大于chunking数量，那就取前面这么chunking个
+                    history_action = root['/action'][start_ts - self.chunk_size : start_ts]
+                    for history_idx in range(start_ts - self.chunk_size, start_ts + 1):
+                        for cam_name in self.camera_names:
+                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                        history_images.append(history_image_dict.copy())
+                history_action_len = min(history_action_len, self.chunk_size)
+            
+                # 更新diff
+                if self.use_diff:
+                    qpos = root['/observations/qpos'][start_ts]
+                    qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
+                    qpos = np.append(qpos, qpos_diff[:7])
+                    
+                    gpos = root['/observations/gpos'][start_ts]
+                    gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
+                    gpos = np.append(gpos, gpos_diff[:7])
                          
             else: # 不需要分段任务
                 history_action_len = start_ts + 1
-                if history_action_len <= self.num_queries: # 存在的历史长度小于chunking数量
+                if history_action_len <= self.chunk_size: # 存在的历史长度小于chunking数量
                     history_action = root['/action'][0 : start_ts + 1]
                     for history_idx in range(start_ts + 1):
                         for cam_name in self.camera_names:
                             history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
                         history_images.append(history_image_dict.copy())
                 else:
-                    history_action = root['/action'][start_ts - self.num_queries : start_ts]
-                    for history_idx in range(start_ts - self.num_queries, start_ts + 1): # 存在的历史长度大于chunking数量，但是也只读这么多个，为了节省空间
+                    history_action = root['/action'][start_ts - self.chunk_size : start_ts]
+                    for history_idx in range(start_ts - self.chunk_size, start_ts + 1): # 存在的历史长度大于chunking数量，但是也只读这么多个，为了节省空间
                         for cam_name in self.camera_names:
                             history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
                         history_images.append(history_image_dict.copy())
-                history_action_len = min(history_action_len, self.num_queries)
+                history_action_len = min(history_action_len, self.chunk_size)
             
             
-        padded_action = np.zeros((self.num_queries,) + original_action_shape[1:], dtype=np.float32) 
+        padded_action = np.zeros((self.chunk_size,) + original_action_shape[1:], dtype=np.float32) 
         # 随机抽样的结果当中只剩余17步了之后，也会推广到32，方便后面做action chunking 的截取，也就是说最大的quary就是max_len
         padded_action[:action_len] = action[:action_len] # 如果这里报错，去看看command json是不是多给了一个action步骤
-        padded_history_action = np.zeros((self.num_queries,) + original_action_shape[1:], dtype=np.float32)
-        is_pad_action = np.zeros(self.num_queries)
+        padded_history_action = np.zeros((self.chunk_size,) + original_action_shape[1:], dtype=np.float32)
+        is_pad_action = np.zeros(self.chunk_size)
         is_pad_action[action_len:] = 1
         
         history_action = history_action[::-1] # 翻转 history_action
         padded_history_action[:history_action_len] = history_action[:history_action_len] # 往前面添加historyaction
-        is_pad_history = np.zeros(self.num_queries)
+        is_pad_history = np.zeros(self.chunk_size)
         is_pad_history[history_action_len:] = 1 # 前面是空白，后面是最近的action_pos
         
         # new axis for different cameras
@@ -271,7 +270,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             history_all_cam_images.append(all_history_cam_images)
             
         original_images_shape = np.shape(history_all_cam_images)
-        padded_history_images = np.zeros((self.num_queries,) + original_images_shape[1:], dtype=np.float32)
+        padded_history_images = np.zeros((self.chunk_size,) + original_images_shape[1:], dtype=np.float32)
         history_all_cam_images = history_all_cam_images[::-1] # 以第一个维度倒序, 翻转图像
         padded_history_images[:history_action_len] = history_all_cam_images[:history_action_len] # 往前面添加 padded_history_images
         
@@ -297,20 +296,22 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         
         # 标准化过程
         # np.set_printoptions(linewidth=300)
-        if self.transformations is None:
-            print('Initializing transformations')
-            original_size = image_data.shape[2:]
-            ratio = 0.95
-            self.transformations = [
-                transforms.RandomCrop(size=[int(original_size[0] * ratio), int(original_size[1] * ratio)]),
-                transforms.Resize(original_size, antialias=True),
-                transforms.RandomRotation(degrees=[-5.0, 5.0], expand=False),
-                transforms.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5) #, hue=0.08)
-            ]
-        if self.augment_images:
-            for transform in self.transformations:
-                image_data = transform(image_data)
         if self.policy_class == 'Diffusion':
+
+            if self.transformations is None:
+                print('Initializing transformations')
+                print(f'{self.augment_images=}')
+                original_size = image_data.shape[2:]
+                ratio = 0.95
+                self.transformations = [
+                    transforms.RandomCrop(size=[int(original_size[0] * ratio), int(original_size[1] * ratio)]),
+                    transforms.Resize(original_size, antialias=True),
+                    transforms.RandomRotation(degrees=[-5.0, 5.0], expand=False),
+                    transforms.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5) #, hue=0.08)
+                ]
+            if self.augment_images:
+                for transform in self.transformations:
+                    image_data = transform(image_data)
             # normalize to [-1, 1]
             action_data = ((action_data - self.norm_stats["action_min"]) / (self.norm_stats["action_max"] - self.norm_stats["action_min"])) * 2 - 1
         else:
@@ -328,7 +329,6 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         history_action_data = (history_action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
         
         # return
-        
         if self.use_language:
             return image_data, qpos_data, gpos_data, history_images_data, history_action_data, is_pad_history, action_data, is_pad_action, command_embedding
         else:
@@ -459,7 +459,7 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
     return stats
 
 
-def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, max_len=None, num_queries=None, command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
+def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, max_len=None, chunk_size=None, command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
     print(f'\nData from: {dataset_dir}\n')
     # obtain train test split
     train_ratio = 0.8
@@ -471,8 +471,8 @@ def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_s
     norm_stats = get_norm_stats(dataset_dir, num_episodes, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, num_queries, command_list, use_language, language_encoder,use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
-    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, num_queries, command_list, use_language, language_encoder, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
+    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, chunk_size, command_list, use_language, language_encoder,use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
+    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, chunk_size, command_list, use_language, language_encoder, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
     
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)

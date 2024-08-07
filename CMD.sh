@@ -32,7 +32,7 @@ python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 # 演示数据集生成    
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks setup_chess \
+    --tasks push_button \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -44,9 +44,9 @@ python3 RPT_model/mod_datasets.py
 
 # ACT
 python RPT_model/imitate_inference.py \
-    --task_name sorting_program5 \
+    --task_name push_button \
     --ckpt_dir Trainings \
-    --policy_class ACT3E2 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0
 
 # CNNMLP

@@ -177,6 +177,7 @@ def main(args):
     
     # 增加参数保存
     chunk_size = args['chunk_size']
+    
     batch_size = args['batch_size']
     ckpt_dir = args['ckpt_dir'] + f'/{task_name}/{policy_class}_{num_episodes}demo_{episode_len}step_{chunk_size}chunk_{batch_size}batch_{backbone}'
     # print(f"train on {camera_names}")
@@ -214,7 +215,7 @@ def main(args):
       
     # 如果不是evaluation
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, 
-                                                           max_len=max_skill_len, num_queries=chunk_size, command_list=commands, use_language=use_language, language_encoder=language_encoder,
+                                                           max_len=max_skill_len, chunk_size=chunk_size, command_list=commands, use_language=use_language, language_encoder=language_encoder,
                                                            use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
 
     # save dataset stats

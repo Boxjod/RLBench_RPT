@@ -47,20 +47,20 @@ def get_sinusoid_encoding_table(n_position, d_hid):
 
 class DETRVAE(nn.Module):
     """ This is the DETR module that performs object detection """
-    def __init__(self, backbones, transformer, encoder, state_dim, action_dim, num_queries, camera_names, use_language=False, use_film=False, num_command=2, use_gpos=True, policy_class='ACT'):
+    def __init__(self, backbones, transformer, encoder, state_dim, action_dim, chunk_size, camera_names, use_language=False, use_film=False, num_command=2, use_gpos=True, policy_class='ACT'):
         """ Initializes the model.
         Parameters:
             backbones: torch module of the backbone to be used. See backbone.py
             transformer: torch module of the transformer architecture. See transformer.py
             state_dim: robot state dimension of the environment
             action_dim: robot output dimension of action
-            num_queries: number of object queries, ie detection slot. This is the maximal number of objects
+            chunk_size: number of object queries, ie detection slot. This is the maximal number of objects
                          DETR can detect in a single image. For COCO, we recommend 100 queries.
             aux_loss: True if auxiliary decoding losses (loss at each decoder layer) are to be used.
             use_film: Whether to use FiLM language encoding.
         """
         super().__init__()
-        self.num_queries = num_queries
+        self.chunk_size = chunk_size
         self.camera_names = camera_names
         self.transformer = transformer
         self.encoder = encoder
@@ -68,7 +68,7 @@ class DETRVAE(nn.Module):
         
         self.action_head = nn.Linear(hidden_dim, action_dim)
         self.is_pad_head = nn.Linear(hidden_dim, 1)
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_embed = nn.Embedding(chunk_size, hidden_dim)
         
         self.use_language = use_language
         self.use_film = use_film
@@ -134,9 +134,9 @@ class DETRVAE(nn.Module):
         print(f"{self.use_Z=}, {self.use_history=}, {self.use_history_images=}")
         
         if self.use_Z:
-            self.register_buffer('pos_table', get_sinusoid_encoding_table(1+1+num_queries, hidden_dim)) # [CLS], qpos，gpos, a_seq
+            self.register_buffer('pos_table', get_sinusoid_encoding_table(1+1+chunk_size, hidden_dim)) # [CLS], qpos，gpos, a_seq
         else:
-            self.register_buffer('pos_table', get_sinusoid_encoding_table(1+num_queries, hidden_dim)) # [CLS], qpos，gpos, a_seq
+            self.register_buffer('pos_table', get_sinusoid_encoding_table(1+chunk_size, hidden_dim)) # [CLS], qpos，gpos, a_seq
         
         # decoder extra parameters
         self.latent_out_proj = nn.Linear(self.latent_dim, hidden_dim) # project latent sample to embedding
@@ -148,7 +148,7 @@ class DETRVAE(nn.Module):
         else:
             pos_embed_dim = 2
         # pos_embed_dim = 4 if self.use_language else 3 # 因为command_embedding 加了1，因为gpos分开了 加了1
-        print(f"Transformer input block number = {pos_embed_dim + num_queries}")
+        print(f"Transformer input block number = {pos_embed_dim + chunk_size}")
         self.additional_pos_embed = nn.Embedding(pos_embed_dim, hidden_dim) # learned position embedding for proprio and latent
 
     def forward(self, qpos, gpos, image, env_state, 
@@ -194,7 +194,7 @@ class DETRVAE(nn.Module):
                     history_all_cam_pos = torch.from_numpy(history_images[1]).unsqueeze(0).cuda() # (1,10,512) bs = 1 # 每次用的都是一模一样的，只要形状一样
                     
                 else:
-                    # 使用backbone 对 history_images 图像处理【只有在训练的时候才会现场编译】【直接把 num_queries 叠加到 batch_size 上 】
+                    # 使用backbone 对 history_images 图像处理【只有在训练的时候才会现场编译】【直接把 chunk_size 叠加到 batch_size 上 】
                     # [batch_size, history_idx, cam_id, chanel, width, height] -> [batch_size * history_idx, cam_id, chanel, width, height]
                     target_shape = np.append(-1, history_images.shape[2:])  # [ -1,   1,   3, 120, 160]，其中-1参数可以使torch.view自动拼接1、2维度的数据
                     history_images = history_images.view(target_shape[0], target_shape[1], target_shape[2], target_shape[3], target_shape[4])
@@ -206,7 +206,7 @@ class DETRVAE(nn.Module):
                         
                         if self.use_film:
                             # command_embedding 需要重复batch_size * history_idx次，原本是需要重复batch_size
-                            command_embedding_history = command_embedding.repeat(self.num_queries,1)
+                            command_embedding_history = command_embedding.repeat(self.chunk_size,1)
                             # total_bytes = command_embedding_history.numel() * command_embedding_history.element_size()  # 393216，占用内存0.375MB
                             # print(f"{command_embedding_history.shape=}, {total_bytes/1024=}")
                             features, pos = self.backbones[cam_id](history_images[:, cam_id], command_embedding_history) # add command_embedding
@@ -228,12 +228,12 @@ class DETRVAE(nn.Module):
                     history_all_cam_src = history_all_cam_src.flatten(2) 
                     history_all_cam_src = torch.mean(history_all_cam_src, dim=2).unsqueeze(1) 
                     
-                    # (1, 512, 4, 5) -> (num_queries, 512,20）->  (num_queries, 512) -> (1, num_queries, 512) pos本身不需要batch_size，是共享的
-                    history_all_cam_pos = history_all_cam_pos.flatten(2).repeat(self.num_queries, 1, 1) 
+                    # (1, 512, 4, 5) -> (chunk_size, 512,20）->  (chunk_size, 512) -> (1, chunk_size, 512) pos本身不需要batch_size，是共享的
+                    history_all_cam_pos = history_all_cam_pos.flatten(2).repeat(self.chunk_size, 1, 1) 
                     history_all_cam_pos = torch.mean(history_all_cam_pos, dim=2).unsqueeze(0)  
                     
                     # src = (80,1,512) -> (8,10,512)； 
-                    history_all_cam_src = history_all_cam_src.view(bs, self.num_queries, self.hidden_dim) # [bs, seq, 512]
+                    history_all_cam_src = history_all_cam_src.view(bs, self.chunk_size, self.hidden_dim) # [bs, seq, 512]
                 
                 # (bs, 1 + seq + seq, hidden_dim) -> (1 + seq + seq, bs, hidden_dim)
                 encoder_input = torch.cat([cls_embed, history_action_embed, history_all_cam_src], axis=1) 
@@ -264,6 +264,7 @@ class DETRVAE(nn.Module):
                 pos_embed = self.pos_table.clone().detach()# (1, seq + 1, hidden_dim) -> (seq + 1, 1, hidden_dim)
                 pos_embed = pos_embed.permute(1, 0, 2)  
                 
+                print(f'$$$$$$$$$$$${encoder_input.shape=}, {pos_embed.shape=}')
                 encoder_output = self.encoder(encoder_input, pos=pos_embed, src_key_padding_mask=is_pad_history)
                 
             encoder_output = encoder_output[0] # take cls output only
@@ -394,7 +395,7 @@ class CNNMLP(nn.Module):
             backbones: torch module of the backbone to be used. See backbone.py
             transformer: torch module of the transformer architecture. See transformer.py
             state_dim: robot state dimension of the environment
-            num_queries: number of object queries, ie detection slot. This is the maximal number of objects
+            chunk_size: number of object queries, ie detection slot. This is the maximal number of objects
                          DETR can detect in a single image. For COCO, we recommend 100 queries.
             aux_loss: True if auxiliary decoding losses (loss at each decoder layer) are to be used.
         """
@@ -503,7 +504,7 @@ def build_vae(args): # 核心模型部分 称为类VAE模型
         state_dim=state_dim,
         # 输出层
         action_dim = action_dim,
-        num_queries=args.num_queries, # 每个演示的步数
+        chunk_size=args.chunk_size, # 每个演示的步数
         camera_names=args.camera_names, # 相机名字
         use_language=args.use_language,
         use_film="film" in args.backbone,
