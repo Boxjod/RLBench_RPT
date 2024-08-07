@@ -186,7 +186,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             # print(f"now_frame = {start_ts}, last_point = {change_point}, history_action_len = {history_action_len}")
             # now_frame = 34, last_point = 31, history_action_len = 4 这种状态下就可以产生pad的开启新现阶段的效果
             
-            if start_ts<=(change_point+self.num_queries): 
+            if start_ts<=(change_point + self.num_queries): 
                 
                 history_action = root['/action'][change_point : start_ts + 1]
                 for history_idx in range(change_point, start_ts + 1):
