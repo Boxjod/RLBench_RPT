@@ -211,6 +211,7 @@ class DETRVAE(nn.Module):
                             # print(f"{command_embedding_history.shape=}, {total_bytes/1024=}")
                             features, pos = self.backbones[cam_id](history_images[:, cam_id], command_embedding_history) # add command_embedding
                         else:
+                            # with torch.no_grad():
                             features, pos = self.backbones[cam_id](history_images[:, cam_id]) # image[:,id]前面的冒号就是表示的batch_size
                         
                         features = features[0] # take the last layer feature [80, 1536, 4, 5]
@@ -322,6 +323,7 @@ class DETRVAE(nn.Module):
 
         if self.backbones is not None: # 用骨干网络做图像预处理
             # Image observation features and position embeddings
+            
             all_cam_features = []
             all_cam_pos = []
             for cam_id, cam_name in enumerate(self.camera_names):

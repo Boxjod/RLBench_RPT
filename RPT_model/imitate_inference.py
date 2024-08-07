@@ -137,7 +137,7 @@ def main(args):
                          'lr_backbone': lr_backbone,
                          
                          'action_dim': action_dim,
-                         'num_queries': args['chunk_size'],
+                         'chunk_size': args['chunk_size'],
                          }
     elif policy_class == "Diffusion":
         policy_config = {
@@ -165,7 +165,7 @@ def main(args):
             "lr": args["lr"],
             "lr_backbone": lr_backbone,
             "backbone": backbone,
-            "num_queries": 1,
+            "chunk_size": 1,
             "camera_names": camera_names,
             
             'state_dim': state_dim,
@@ -213,7 +213,7 @@ def main(args):
         exit() # eval 结束后退出程序
       
     # 如果不是evaluation
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, 
+    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, 
                                                            max_len=max_skill_len, num_queries=chunk_size, command_list=commands, use_language=use_language, language_encoder=language_encoder,
                                                            use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
 
@@ -338,7 +338,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
             lambda a: ((a + 1) / 2) * (stats["action_max"] - stats["action_min"])
             + stats["action_min"]
         )
-    else:
+    else: #TODO 暂时未改
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
     
     # load environment
@@ -346,12 +346,11 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         from sim_env import make_sim_env
         env = make_sim_env(task_name)
         print("random seed = ", seed)
-        env_max_reward = 1 # env.task.max_reward
-    # chunk_size = num_queries
-    query_frequency = policy_config['num_queries']
+        env_max_reward = 1 # env.task.max_rewardz
+    query_frequency = policy_config['chunk_size']
     if temporal_agg:
         query_frequency = 1
-        num_queries = policy_config['num_queries']
+        chunk_size = policy_config['chunk_size']
         
     ##########################################################################################################
     max_timesteps = int(max_timesteps * 1.0) # may increase for real-world tasks
@@ -381,7 +380,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         
         ### evaluation loop
         if temporal_agg: # 是否使用GPU提前读取数据？？应该可以提高 eval 速度
-            all_time_actions = torch.zeros([max_timesteps, max_timesteps+num_queries, action_dim]).cuda() ## 输出8维，但是输入时15维度
+            all_time_actions = torch.zeros([max_timesteps, max_timesteps+chunk_size, action_dim]).cuda() ## 输出8维，但是输入时15维度
 
         qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
         gpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
@@ -392,8 +391,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         target_gpos_list = []
         rewards = []
         
-        history_action = np.zeros((num_queries,) + (action_dim,), dtype=np.float32)
-        history_image_feature = np.zeros((2,num_queries,) + (hidden_dim,), dtype=np.float32)
+        history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+        history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
         
         with torch.inference_mode():
             path = []
@@ -434,7 +433,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 gpos = torch.from_numpy(gpos).float().cuda().unsqueeze(0)
                 gpos_history[:, t] = gpos
                 
-                
                 history_action_numpy = np.array(history_action)
                 history_action_numpy = pre_process_action_history(history_action_numpy)
                 history_action_numpy = torch.from_numpy(history_action_numpy).float().cuda()
@@ -469,7 +467,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             command_list.append(f"{prefix}: {command}")
                         
                     if temporal_agg: # 做了一个 Action Chunking
-                        all_time_actions[[t], t:t+num_queries] = all_actions
+                        all_time_actions[[t], t:t+chunk_size] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
                         
                         # 在生成的多个序列中不是简单的平均，又做了一个运算（时间集成？？）
@@ -496,9 +494,9 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 # target_qpos = action
                 
                 if 'ACT' in config['policy_class']:
-                    history_action = np.insert(history_action, 0, action, axis=0)[:num_queries]
-                    history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:num_queries]
-                    history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:num_queries]
+                    history_action = np.insert(history_action, 0, action, axis=0)[:chunk_size]
+                    history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:chunk_size]
+                    history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:chunk_size]
                 
                 ###################################################
                 # 将action_diff作为action
@@ -535,7 +533,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         print(f"{timestep}:{gripper_state=}")
                         # 夹爪控制###############################################################################################
                         done = False
-                        if task_name =="sorting_program5" or task_name =="close_jar":
+                        if task_name =="sorting_program5":
                             if gripper_state < 0.60 and gripper_flag < 2 : # 适合步骤1 夹取
                                 print(timestep,": close_gripper: ", gripper_state)
                                 gripper_flag = gripper_flag + 2 # 留出一帧错误
@@ -544,8 +542,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                                     # env._scene.step() # Scene 步进
                                 
                                 # 清空历史信息
-                                history_action = np.zeros((num_queries,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,num_queries,) + (hidden_dim,), dtype=np.float32)
+                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                                 qpos_initial = obs.joint_positions
                                 gpos_initial = obs.gripper_pose
 
@@ -557,11 +555,10 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                                     env._scene.step() # Scene 步进
                                     
                                 # 清空历史信息
-                                history_action = np.zeros((num_queries,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,num_queries,) + (hidden_dim,), dtype=np.float32)
+                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                                 qpos_initial = obs.joint_positions
                                 gpos_initial = obs.gripper_pose
-                                
                         else:
                             if gripper_state < 0.90 and gripper_flag < 2 : # 适合步骤1 夹取
                                 print(timestep,": close_gripper: ", gripper_state)

@@ -33,7 +33,7 @@ def make_sim_env(task_name):
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/arx-4090/workspace/CoppeliaSim"
     
     # 1. 设置仿真环境的配置文件
-    img_size = [160, 120] # 图片格式大小  # 640, 480
+    img_size = [640, 480] # 图片格式大小  # 640, 480 # 160, 120
     
     obs_config = ObservationConfig()
     

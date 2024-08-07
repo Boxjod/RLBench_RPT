@@ -5,6 +5,7 @@ import os
 import h5py
 import json
 from torch.utils.data import TensorDataset, DataLoader
+import torchvision.transforms as transforms
 
 import IPython
 e = IPython.embed
@@ -14,7 +15,7 @@ CROP_TOP = True  # hardcode
 FILTER_MISTAKES = False  # Filter out mistakes from the dataset even if not use_language
 
 class  EpisodicDataset(torch.utils.data.Dataset):
-    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats, max_len=None, num_queries=None, 
+    def __init__(self, episode_ids, dataset_dir, camera_names, norm_stats, policy_class, max_len=None, num_queries=None, 
                  command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
         super(EpisodicDataset).__init__()
         self.episode_ids = episode_ids if len(episode_ids) > 0 else [0] 
@@ -33,7 +34,13 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         
         self.use_diff = use_diff
         self.action_is_qpos = action_is_qpos
-
+        self.policy_class = policy_class
+        if self.policy_class == 'Diffusion':
+            self.augment_images = True
+        else:
+            self.augment_images = False
+        self.transformations = None
+        
         self.__getitem__(0) # initialize self.is_sim
 
     def __len__(self):
@@ -159,55 +166,51 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             history_images = []
             history_image_dict = dict()
 
-            if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:# 用夹爪状态分割历史
-                qpos_his = root['/observations/qpos'][0:start_ts + 1] # 只需要检测之前状态的改变
-                qpos_his_len = len(qpos_his) # 它会等于0
+            # if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:# 用夹爪状态分割历史
+            qpos_his = root['/observations/qpos'][0:start_ts + 1] # 只需要检测之前状态的改变
+            qpos_his_len = len(qpos_his) # 它会等于0
 
-                gripper_state = qpos_his[qpos_his_len-1][7] # 读取了最后的状态
-                gripper_change_point = []
+            gripper_state = qpos_his[qpos_his_len-1][7] # 读取了最后的状态
+            gripper_change_point = []
 
-                for idx in range(qpos_his_len-1, -1, -1): # 倒着来检测夹爪状态变化
-                    if gripper_state != qpos_his[idx][7]:
-                        gripper_state = qpos_his[idx][7]
-                        gripper_change_point.append(idx+1)
-                        break
-                gripper_change_point.append(0)
-                # print(f"#####\n当前start_ts = {start_ts}, history_len = {qpos_his_len}, now_state = {gripper_state}, history_change = {gripper_change_point}")
+            for idx in range(qpos_his_len-1, -1, -1): # 倒着来检测夹爪状态变化
+                if gripper_state != qpos_his[idx][7]:
+                    gripper_state = qpos_his[idx][7]
+                    gripper_change_point.append(idx+1)
+                    break
+            gripper_change_point.append(0)
+            # print(f"#####\n当前start_ts = {start_ts}, history_len = {qpos_his_len}, now_state = {gripper_state}, history_change = {gripper_change_point}")
+            
+            change_point = gripper_change_point[0] # 向前推最近的一个夹爪改变点
+            history_action_len = start_ts - change_point + 1 # 如果是20-10 = 10，如果是10，那么+1 =11个动作历史因为有0 
+            # print(f"now_frame = {start_ts}, last_point = {change_point}, history_action_len = {history_action_len}")
+            # now_frame = 34, last_point = 31, history_action_len = 4 这种状态下就可以产生pad的开启新现阶段的效果
+            
+            if start_ts<=(change_point+self.num_queries): 
                 
-                change_point = gripper_change_point[0] # 向前推最近的一个夹爪改变点
-                history_action_len = start_ts - change_point + 1 # 如果是20-10 = 10，如果是10，那么+1 =11个动作历史因为有0 
-                # print(f"now_frame = {start_ts}, last_point = {change_point}, history_action_len = {history_action_len}")
-                # now_frame = 34, last_point = 31, history_action_len = 4 这种状态下就可以产生pad的开启新现阶段的效果
+                history_action = root['/action'][change_point : start_ts + 1]
+                for history_idx in range(change_point, start_ts + 1):
+                    for cam_name in self.camera_names:
+                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                    history_images.append(history_image_dict.copy())
+            
+            else: # 距离上一个夹爪分界点，之间的历史长度大于chunking数量，那就取前面这么chunking个
+                history_action = root['/action'][start_ts - self.num_queries : start_ts]
+                for history_idx in range(start_ts - self.num_queries, start_ts + 1):
+                    for cam_name in self.camera_names:
+                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                    history_images.append(history_image_dict.copy())
+            history_action_len = min(history_action_len, self.num_queries)
+            
+            # 更新diff
+            if self.use_diff:
+                qpos = root['/observations/qpos'][start_ts]
+                qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
+                qpos = np.append(qpos, qpos_diff[:7])
                 
-                if start_ts<=(change_point+self.num_queries): 
-                    
-                    history_action = root['/action'][change_point : start_ts + 1]
-                    for history_idx in range(change_point, start_ts + 1):
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                
-                else: # 距离上一个夹爪分界点，之间的历史长度大于chunking数量，那就取前面这么chunking个
-                    history_action = root['/action'][start_ts - self.num_queries : start_ts]
-                    for history_idx in range(start_ts - self.num_queries, start_ts + 1):
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                history_action_len = min(history_action_len, self.num_queries)
-                
-                # 更新diff
-                if self.use_diff:
-                    qpos = root['/observations/qpos'][start_ts]
-                    
-                    # print(f"{qpos=} \n {root['/observations/qpos'][change_point]=}")
-                    qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
-                    # print(f"{qpos_diff=}")
-                    qpos = np.append(qpos, qpos_diff[:7])
-                    # print(f"{qpos=}\n")
-                    
-                    gpos = root['/observations/gpos'][start_ts]
-                    gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
-                    gpos = np.append(gpos, gpos_diff[:7])
+                gpos = root['/observations/gpos'][start_ts]
+                gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
+                gpos = np.append(gpos, gpos_diff[:7])
                          
             else: # 不需要分段任务
                 history_action_len = start_ts + 1
@@ -294,13 +297,34 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         
         # 标准化过程
         # np.set_printoptions(linewidth=300)
-        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"] 
+        if self.transformations is None:
+            print('Initializing transformations')
+            original_size = image_data.shape[2:]
+            ratio = 0.95
+            self.transformations = [
+                transforms.RandomCrop(size=[int(original_size[0] * ratio), int(original_size[1] * ratio)]),
+                transforms.Resize(original_size, antialias=True),
+                transforms.RandomRotation(degrees=[-5.0, 5.0], expand=False),
+                transforms.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5) #, hue=0.08)
+            ]
+        if self.augment_images:
+            for transform in self.transformations:
+                image_data = transform(image_data)
+        if self.policy_class == 'Diffusion':
+            # normalize to [-1, 1]
+            action_data = ((action_data - self.norm_stats["action_min"]) / (self.norm_stats["action_max"] - self.norm_stats["action_min"])) * 2 - 1
+        else:
+            # normalize to mean 0 std 1
+            action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
+            
+        # action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"] 
         # print(self.norm_stats["qpos_mean"])
         # print(f"标准化之前{qpos_data=}")
         # print(qpos_data - self.norm_stats["qpos_mean"])
         qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
         # print(f"标准化之后：{qpos_data=}")
         gpos_data = (gpos_data - self.norm_stats["gpos_mean"]) / self.norm_stats["gpos_std"]
+        
         history_action_data = (history_action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
         
         # return
@@ -396,6 +420,8 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
     action_mean = all_action_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]
     action_std = all_action_data.std(dim=0, keepdim=True).unsqueeze(0)
     action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
+    action_min = all_action_data.min(dim=0).values.float()
+    action_max = all_action_data.max(dim=0).values.float()
     
     # normalize qpos data
     if use_diff: 
@@ -414,8 +440,10 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
         gpos_mean = all_gpos_data.mean(dim=0, keepdim=True).unsqueeze(0) # [1, 1, 8]
         gpos_std = all_gpos_data.std(dim=0, keepdim=True).unsqueeze(0)
         gpos_std = torch.clip(gpos_std, 1e-2, np.inf) # clipping
-        
     
+
+    
+    eps = 0.0001
     stats = {"action_mean": action_mean.numpy().squeeze(), 
              "action_std": action_std.numpy().squeeze(),
              "qpos_mean": qpos_mean.numpy().squeeze(), 
@@ -423,13 +451,15 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
              "gpos_mean": gpos_mean.numpy().squeeze(), 
              "gpos_std": gpos_std.numpy().squeeze(),
              "example_qpos": qpos,
-             "example_gpos": gpos
+             "example_gpos": gpos,
+             "action_min": action_min.numpy() - eps,
+             "action_max": action_max.numpy() + eps,
              } # example_qpos就像是在作弊一样，应该可以大大提高成功率
 
     return stats
 
 
-def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, max_len=None, num_queries=None, command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
+def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, max_len=None, num_queries=None, command_list=None, use_language=False, language_encoder=None, use_gpos=True, use_diff=True, action_is_qpos=False):
     print(f'\nData from: {dataset_dir}\n')
     # obtain train test split
     train_ratio = 0.8
@@ -441,8 +471,8 @@ def load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_s
     norm_stats = get_norm_stats(dataset_dir, num_episodes, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats, max_len, num_queries, command_list, use_language, language_encoder,use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
-    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats, max_len, num_queries, command_list, use_language, language_encoder, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
+    train_dataset = EpisodicDataset(train_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, num_queries, command_list, use_language, language_encoder,use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
+    val_dataset = EpisodicDataset(val_indices, dataset_dir, camera_names, norm_stats, policy_class, max_len, num_queries, command_list, use_language, language_encoder, use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
     
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
