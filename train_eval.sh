@@ -8,8 +8,8 @@ python3 RLBench/tools/dataset_generator_hdf5.py \
     --variations 1 \
     --episodes_per_task 50
 
-task_name=("push_button" )
-model_type=(ACT3E3)
+task_name=("meat_off_grill" )
+model_type=(ACT0E0 ACT3E0 ACT3E2 ACT3E3)
 epoch_list=(1000 2000 3000 4000 5000 6000 7000 8000 9000 10000 11000 12000 13000 14000 15000 16000)
 backbone_list=("resnet18")
 chunk_size=(30)

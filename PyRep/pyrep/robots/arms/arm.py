@@ -405,7 +405,6 @@ class Arm(RobotComponent):
                  trials_per_goal=1,
                  algorithm=Algos.SBL,
                  relative_to: Object = None,
-                 get_if_linear=False,
                  steps=50
                  ) -> ArmConfigurationPath:
         """Tries to get a linear path, failing that tries a non-linear path.
@@ -440,11 +439,8 @@ class Arm(RobotComponent):
                                      ignore_collisions=ignore_collisions,
                                      relative_to=relative_to,
                                      steps=steps)
-            
-            if get_if_linear:
-                is_linear = True
-                return p, True
-            return p
+            return p, True
+
         except ConfigurationPathError:
             pass  # Allowed. Try again, but with non-linear.
 
@@ -453,10 +449,7 @@ class Arm(RobotComponent):
             position, euler, quaternion, ignore_collisions, trials, max_configs,
             distance_threshold, max_time_ms, trials_per_goal, algorithm,
             relative_to)
-        if get_if_linear:
-            is_linear = False
-            return p, is_linear
-        return p
+        return p, False
 
     def get_tip(self) -> Dummy:
         """Gets the tip of the arm.

@@ -29,7 +29,7 @@ python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks sorting_program5 \
+    --tasks close_fridge \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -94,13 +94,13 @@ python RPT_model/imitate_inference.py \
     
     
 python RPT_model/imitate_inference.py \
-    --task_name push_button \
+    --task_name meat_off_grill \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     ; \
 python RPT_model/imitate_inference.py \
-    --task_name push_button \
+    --task_name meat_off_grill \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \

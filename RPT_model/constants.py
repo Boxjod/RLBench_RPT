@@ -32,6 +32,13 @@ SIM_TASK_CONFIGS = {
         'num_variation': 1,
         'camera_names': ['wrist']
     },
+    'open_microwave':{ 
+        'dataset_dir': DATA_DIR + '/open_microwave/variation0', 
+        'episode_len': 70, 
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
 
 }
 

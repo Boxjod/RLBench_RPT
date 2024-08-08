@@ -387,14 +387,14 @@ class Scene(object):
                 
                 try:
                     if len(ext) > 0 and 'steps(' in ext:
-                        left = ext.index('steps(')+6
+                        left = ext.index('steps(') + 6
                         right = ext[left:].index(')')
                         steps_len = int(ext[left:left+right])
                         path, is_linear = point.get_path(steps=steps_len)
                     elif len(waypoints) == 1:
                         path, is_linear = point.get_path(steps = episode_len-1)
                     else:
-                        path, is_linear = point.get_path(steps=10) 
+                        path, is_linear = point.get_path(steps = 10) 
                         
                     [s.set_collidable(True) for s in colliding_shapes]
                 except ConfigurationPathError as e:

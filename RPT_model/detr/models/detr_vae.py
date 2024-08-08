@@ -144,28 +144,11 @@ class DETRVAE(nn.Module):
         # pos_embed_dim = 4 if self.use_language else 3 # command_embedding + 1，gpos spilt + 1
         print(f"Transformer input block number = {pos_embed_dim + chunk_size}")
         self.additional_pos_embed = nn.Embedding(pos_embed_dim, hidden_dim) # learned position embedding for proprio and latent
-
-    def forward(self, qpos, gpos, image, env_state, 
-                history_images=None, history_action=None, is_pad_history=None, 
-                actions=None, is_pad_action=None, 
-                command_embedding=None):
-        """
-        qpos: batch, qpos_dim
-        gpos: batch, gpos_dim
-        image: batch, num_cam, channel, height, width
-        env_state: None
-        actions: batch, seq, action_dim
-        command_embedding: batch, command_embedding_dim
-        """
+    
+    def encode(self, qpos, history_images=None, history_action=None, is_pad_history=None, actions=None, is_pad_action=None, command_embedding=None):
+        
         is_training = actions is not None # train or val
         bs, _ = qpos.shape # bs = Batch_Size
-        
-        # Project the command embedding to the required dimension
-        if command_embedding is not None:
-            if self.use_language:
-                command_embedding_proj = self.lang_embed_proj(command_embedding)
-            else:
-                raise NotImplementedError
         
         ### Obtain latent z from action sequence
         if self.use_history: # history action and images encoder
@@ -252,7 +235,6 @@ class DETRVAE(nn.Module):
                 pos_embed = self.pos_table.clone().detach()# (1, seq + 1, hidden_dim) -> (seq + 1, 1, hidden_dim)
                 pos_embed = pos_embed.permute(1, 0, 2)  
                 
-                print(f'$$$$$$$$$$$${encoder_input.shape=}, {pos_embed.shape=}')
                 encoder_output = self.encoder(encoder_input, pos=pos_embed, src_key_padding_mask=is_pad_history)
                 
             encoder_output = encoder_output[0] # take cls output only
@@ -307,7 +289,35 @@ class DETRVAE(nn.Module):
             mu = logvar = None
             latent_sample = torch.zeros([bs, self.latent_dim], dtype=torch.float32).to(qpos.device)
             latent_input = self.latent_out_proj(latent_sample)
-
+            
+        return latent_input, mu, logvar 
+        
+    
+    def forward(self, qpos, gpos, image, env_state, 
+                history_images=None, history_action=None, is_pad_history=None, 
+                actions=None, is_pad_action=None, 
+                command_embedding=None):
+        """
+        qpos: batch, qpos_dim
+        gpos: batch, gpos_dim
+        image: batch, num_cam, channel, height, width
+        env_state: None
+        actions: batch, seq, action_dim
+        command_embedding: batch, command_embedding_dim
+        """
+        is_training = actions is not None # train or val
+        bs, _ = qpos.shape # bs = Batch_Size
+        
+        latent_input, mu, logvar = self.encode(self, qpos, history_images=history_images, history_action=history_action, is_pad_history=is_pad_history, actions=actions, is_pad_action=is_pad_action, command_embedding=command_embedding)
+        
+        # Project the command embedding to the required dimension
+        if command_embedding is not None:
+            if self.use_language:
+                command_embedding_proj = self.lang_embed_proj(command_embedding)
+            else:
+                raise NotImplementedError
+        
+        
         if self.backbones is not None: 
             # Image observation features and position embeddings
             
@@ -428,7 +438,6 @@ class CNNMLP(nn.Module):
             flattened_features.append(cam_feature.reshape([bs, -1]))
         flattened_features = torch.cat(flattened_features, axis=1) # 768 each
         features = torch.cat([flattened_features, qpos], axis=1) # qpos: 14
-        # print(f'{features.shape=}')
         a_hat = self.mlp(features)
         return a_hat
 

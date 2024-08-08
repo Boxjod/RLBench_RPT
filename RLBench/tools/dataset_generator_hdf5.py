@@ -37,25 +37,14 @@ if socket.gethostname() != 'XJ':
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('save_path',
-                    '/tmp/rlbench_data/',
-                    'Where to save the demos.')
-flags.DEFINE_list('tasks', [],
-                  'The tasks to collect. If empty, all tasks are collected.')
-
-flags.DEFINE_list('image_size', [640, 480], # 640, 480  [height x width]，coppliasim [width x height]
-                  'The size of the images tp save.')
-flags.DEFINE_enum('renderer',  'opengl3', ['opengl', 'opengl3'],
-                  'The renderer to use. opengl does not include shadows, '
-                  'but is faster.')
-flags.DEFINE_integer('processes', 1,
-                     'The number of parallel processes during collection.')
-flags.DEFINE_integer('episodes_per_task', 50,
-                     'The number of episodes to collect per task.')
-flags.DEFINE_integer('variations', -1,
-                     'Number of variations to collect per task. -1 for all.')
-flags.DEFINE_string('encode_command', 'distilbert',
-                     'If directly generate the command encoder.')
+flags.DEFINE_string('save_path', '/tmp/rlbench_data/', 'Where to save the demos.')
+flags.DEFINE_list('tasks', [], 'The tasks to collect. If empty, all tasks are collected.')
+flags.DEFINE_list('image_size', [640, 480], 'The size of the images tp save.')  # 640, 480  [height x width]，coppliasim [width x height]
+flags.DEFINE_enum('renderer',  'opengl3', ['opengl', 'opengl3'], 'The renderer to use. opengl does not include shadows, ' 'but is faster.')
+flags.DEFINE_integer('processes', 1, 'The number of parallel processes during collection.')
+flags.DEFINE_integer('episodes_per_task', 50, 'The number of episodes to collect per task.')
+flags.DEFINE_integer('variations', -1, 'Number of variations to collect per task. -1 for all.')
+flags.DEFINE_string('encode_command', 'distilbert', 'If directly generate the command encoder.')
 
 np.set_printoptions(linewidth=200)
 
@@ -104,11 +93,10 @@ def save_demo(demo, example_path, ex_idx):
     }
     max_timesteps = len(demo)
     
+    state2action_step = 1
+    
     for i, obs in enumerate(demo): 
-        
-        # print(f'{i=}:{obs.gripper_open=}')
-        
-        if i != 0: 
+        if i >= state2action_step: 
             data_dict['/action'].append(np.append(obs.gripper_pose, obs.gripper_open))
             data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
            
@@ -126,8 +114,10 @@ def save_demo(demo, example_path, ex_idx):
         data_dict['/observations/gpos'].append(np.append(obs.gripper_pose, obs.gripper_open))
         
     # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 # * 100)//100 
-    data_dict['/action'].append(np.append(obs.gripper_pose,obs.gripper_open))
-    data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
+    for idx in range(state2action_step):
+        data_dict['/action'].append(np.append(obs.gripper_pose,obs.gripper_open))
+        data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
+        
     dataset_path = os.path.join(example_path, f'episode_{ex_idx}') # save path
     check_and_make(example_path)
     

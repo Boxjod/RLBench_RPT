@@ -314,30 +314,16 @@ def get_norm_stats(dataset_dir, num_episodes, use_gpos=True, use_diff=True, acti
                 qpos_temp = np.concatenate((qpos[idx],qpos_diff[:7]), axis=0)[np.newaxis,:]
                 gpos_temp = np.concatenate((gpos[idx],gpos_diff[:7]), axis=0)[np.newaxis,:]
                 
-                if idx == 0:
-                    qpos_data = qpos_temp
-                    gpos_data = gpos_temp
-                else:
-                    qpos_data = np.concatenate((qpos_data, qpos_temp), axis=0)     
-                    gpos_data = np.concatenate((gpos_data, gpos_temp), axis=0)                     
-       
-            if episode_idx == 0:
-                all_qpos_data = qpos_data
-                all_gpos_data = gpos_data
-                all_action_data = action
-            else:
-                all_qpos_data = np.concatenate((all_qpos_data, qpos_data), axis=0)
-                all_gpos_data = np.concatenate((all_gpos_data, gpos_data), axis=0)
-                all_action_data = np.concatenate((all_action_data, action), axis=0)
+                qpos_data = qpos_temp if idx == 0 else np.concatenate((qpos_data, qpos_temp), axis=0)   
+                gpos_data = gpos_temp if idx == 0 else np.concatenate((gpos_data, gpos_temp), axis=0)           
+
+            all_qpos_data = qpos_data if episode_idx == 0 else np.concatenate((all_qpos_data, qpos_data), axis=0)
+            all_gpos_data = gpos_data if episode_idx == 0 else np.concatenate((all_gpos_data, gpos_data), axis=0)
+            all_action_data = action if episode_idx == 0 else np.concatenate((all_action_data, action), axis=0)
         else: 
-            if episode_idx == 0:
-                all_qpos_data = qpos
-                all_gpos_data = gpos
-                all_action_data = action
-            else:
-                all_qpos_data = np.concatenate((all_qpos_data, qpos), axis=0)
-                all_gpos_data = np.concatenate((all_gpos_data, gpos), axis=0)
-                all_action_data = np.concatenate((all_action_data, action), axis=0)     
+            all_qpos_data = qpos if episode_idx == 0 else np.concatenate((all_qpos_data, qpos), axis=0)
+            all_gpos_data = gpos if episode_idx == 0 else np.concatenate((all_gpos_data, gpos), axis=0)
+            all_action_data = action if episode_idx == 0 else np.concatenate((all_action_data, action), axis=0)   
 
     all_qpos_data = np.array(all_qpos_data)
     all_gpos_data = np.array(all_gpos_data)

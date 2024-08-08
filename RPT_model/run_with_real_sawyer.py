@@ -376,7 +376,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
 
 def buil_model(ckpt_dir, ckpt_name):
   print("buil the model structure")
-  from constants import SIM_TASK_CONFIGS
+  from constants11 import SIM_TASK_CONFIGS
   task_config = SIM_TASK_CONFIGS[task_name]
 
   max_timesteps = task_config['episode_len']
