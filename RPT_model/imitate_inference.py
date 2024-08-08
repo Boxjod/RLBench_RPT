@@ -481,13 +481,11 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         # print(f"{timestep}:{gripper_state=}")
                         
                         done = False
-                        
-                        # if task_name =="sorting_program5":
                         if gripper_state < 0.60 and gripper_flag < 2 : 
                             print(timestep,": close_gripper: ", gripper_state)
                             gripper_flag = gripper_flag + 2 
-                            # while done != True:
-                            done = env._robot.gripper.actuate(0, 1.0)
+                            while done != True:
+                                done = env._robot.gripper.actuate(0, 1.0)
                             
                             # clear history information
                             history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
@@ -507,20 +505,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                             qpos_initial = obs.joint_positions
                             gpos_initial = obs.gripper_pose
-                            
-                        # else:
-                        #     if gripper_state < 0.90 and gripper_flag < 2 : 
-                        #         print(timestep,": close_gripper: ", gripper_state)
-                        #         gripper_flag = gripper_flag + 2 
-                        #         # while done != 1:
-                        #         done = env._robot.gripper.actuate(0, 1.0)
-                        #             # env._scene.step() 
-                        #     elif gripper_state > 0.8 and gripper_flag == 2 :
-                        #         print(timestep, ": open_gripper: ", gripper_state)
-                        #         gripper_flag = gripper_flag + 1
-                        #         while done != True:
-                        #             done = env._robot.gripper.actuate(1, 0.4)
-                        #             env._scene.step() 
                         
                         path[t].visualize() 
                         

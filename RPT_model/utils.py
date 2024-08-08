@@ -122,7 +122,6 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             history_images = []
             history_image_dict = dict()
 
-            # if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:
             qpos_his = root['/observations/qpos'][0:start_ts + 1] 
             qpos_his_len = len(qpos_his) 
 
