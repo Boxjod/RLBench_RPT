@@ -90,7 +90,6 @@ class  EpisodicDataset(torch.utils.data.Dataset):
 
             # get observation at start_ts only
             qpos = root['/observations/qpos'][start_ts]
-            
             gpos = root['/observations/gpos'][start_ts]
             if self.use_diff:
                 qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][0])]
