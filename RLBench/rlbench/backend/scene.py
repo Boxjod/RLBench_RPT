@@ -392,10 +392,9 @@ class Scene(object):
                         steps_len = int(ext[left:left+right])
                         path, is_linear = point.get_path(steps=steps_len)
                     elif len(waypoints) == 1:
-                        path, is_linear = point.get_path(steps=episode_len-1)
+                        path, is_linear = point.get_path(steps = episode_len-1)
                     else:
-                        # path, is_linear = point.get_path(steps=50) # 固定的默认步数，但一般是调试出的steps步骤，这样很不通用
-                        path, is_linear = point.get_path(steps=10) # 没有默认步数
+                        path, is_linear = point.get_path(steps=10) 
                         
                     [s.set_collidable(True) for s in colliding_shapes]
                 except ConfigurationPathError as e:
@@ -411,20 +410,19 @@ class Scene(object):
                     done = path.step()
                     self.step()
                     self._execute_demo_joint_position_action = path.get_executed_joint_position_action()
-                    if done == 2 and (not no_record): # 不保留第一个随机手臂位置
+                    if done == 2 and (not no_record): 
                         self._demo_record_step(demo, record, callable_each_step)
                     success, term = self.task.success()
                 if not no_record:
-                    self._demo_record_step(demo, record, callable_each_step) # 结束的最后一帧
+                    self._demo_record_step(demo, record, callable_each_step) 
                 
         
                 print(f"point {i} has reached with {self._lens_episode_count} steps, success = {success}, done = {done}") # success is for task not for waypoint, maybe the done is for waypoint 
                 
                 point.end_of_path()
-                path.clear_visualization() ###########################
+                path.clear_visualization() 
                 
                 # print(self.robot.gripper.get_open_amount()[0])
-                
                 if len(ext) > 0:
                     contains_param = False
                     start_of_bracket = -1
@@ -496,7 +494,7 @@ class Scene(object):
                     
         # success, term = self.task.success()
         
-        print("the lens of episode:", self._lens_episode_count) # 输出episode的长度
+        print("the lens of episode:", self._lens_episode_count) 
         
         if not success: 
             raise DemoError('Demo was completed, but was not successful.',

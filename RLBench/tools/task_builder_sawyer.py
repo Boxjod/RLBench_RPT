@@ -83,7 +83,7 @@ class LoadedTask(object):
             self.task.get_base().set_position(Shape('workspace').get_position())
 
     def _edit_new_task(self):
-        if task_name != None: # 如果带参数启动，则按照参数进行
+        if task_name != None: 
              task_file = task_name
         else:
             task_file = input('What task would you like to edit?(q for exit)\n')
@@ -295,7 +295,7 @@ if __name__ == '__main__':
     pr = PyRep()
     
     
-    ttt_file = join(CURRENT_DIR, '..', 'rlbench', TTT_FILE) # 任务创建是使用的我的模型位置
+    ttt_file = join(CURRENT_DIR, '..', 'rlbench', TTT_FILE) 
     print(ttt_file)
     
     pr.launch(ttt_file, responsive_ui=True)

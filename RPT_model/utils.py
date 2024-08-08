@@ -123,64 +123,64 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             history_images = []
             history_image_dict = dict()
 
-            if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:
-                qpos_his = root['/observations/qpos'][0:start_ts + 1] 
-                qpos_his_len = len(qpos_his) 
+            # if 'sorting_program5' in self.dataset_dir or 'close_jar' in self.dataset_dir:
+            qpos_his = root['/observations/qpos'][0:start_ts + 1] 
+            qpos_his_len = len(qpos_his) 
 
-                gripper_state = qpos_his[qpos_his_len-1][7] 
-                gripper_change_point = []
+            gripper_state = qpos_his[qpos_his_len-1][7] 
+            gripper_change_point = []
 
-                for idx in range(qpos_his_len-1, -1, -1): 
-                    if gripper_state != qpos_his[idx][7]:
-                        gripper_state = qpos_his[idx][7]
-                        gripper_change_point.append(idx+1)
-                        break
-                gripper_change_point.append(0)
+            for idx in range(qpos_his_len-1, -1, -1): 
+                if gripper_state != qpos_his[idx][7]:
+                    gripper_state = qpos_his[idx][7]
+                    gripper_change_point.append(idx+1)
+                    break
+            gripper_change_point.append(0)
 
-                change_point = gripper_change_point[0] 
-                history_action_len = start_ts - change_point + 1 
+            change_point = gripper_change_point[0] 
+            history_action_len = start_ts - change_point + 1 
 
-                
-                if start_ts<=(change_point + self.chunk_size): 
-                    
-                    history_action = root['/action'][change_point : start_ts + 1] # 10,15
-                    for history_idx in range(change_point, start_ts + 1):
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                else:
-                    history_action = root['/action'][start_ts - self.chunk_size : start_ts + 1] # chunk 10,change 10, start40,40 - 10 = 30, 30 ~ 10
-                    for history_idx in range(start_ts - self.chunk_size, start_ts + 1):
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                history_action_len = min(history_action_len, self.chunk_size)
             
-                # use diff
-                if self.use_diff:
-                    qpos = root['/observations/qpos'][start_ts]
-                    qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
-                    qpos = np.append(qpos, qpos_diff[:7])
-                    
-                    gpos = root['/observations/gpos'][start_ts]
-                    gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
-                    gpos = np.append(gpos, gpos_diff[:7])
+            if start_ts<=(change_point + self.chunk_size): 
+                
+                history_action = root['/action'][change_point : start_ts + 1] # 10,15
+                for history_idx in range(change_point, start_ts + 1):
+                    for cam_name in self.camera_names:
+                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                    history_images.append(history_image_dict.copy())
+            else:
+                history_action = root['/action'][start_ts - self.chunk_size : start_ts + 1] # chunk 10,change 10, start40,40 - 10 = 30, 30 ~ 10
+                for history_idx in range(start_ts - self.chunk_size, start_ts + 1):
+                    for cam_name in self.camera_names:
+                        history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+                    history_images.append(history_image_dict.copy())
+            history_action_len = min(history_action_len, self.chunk_size)
+        
+            # use diff
+            if self.use_diff:
+                qpos = root['/observations/qpos'][start_ts]
+                qpos_diff = [a-b for a,b in zip(qpos, root['/observations/qpos'][change_point])]
+                qpos = np.append(qpos, qpos_diff[:7])
+                
+                gpos = root['/observations/gpos'][start_ts]
+                gpos_diff = [a-b for a,b in zip(gpos, root['/observations/gpos'][change_point])]
+                gpos = np.append(gpos, gpos_diff[:7])
                          
-            else: 
-                history_action_len = start_ts + 1
-                if history_action_len <= self.chunk_size: 
-                    history_action = root['/action'][0 : start_ts + 1]
-                    for history_idx in range(start_ts + 1):
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                else:
-                    history_action = root['/action'][start_ts - self.chunk_size : start_ts]
-                    for history_idx in range(start_ts - self.chunk_size, start_ts + 1): 
-                        for cam_name in self.camera_names:
-                            history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
-                        history_images.append(history_image_dict.copy())
-                history_action_len = min(history_action_len, self.chunk_size)
+            # else: 
+            #     history_action_len = start_ts + 1
+            #     if history_action_len <= self.chunk_size: 
+            #         history_action = root['/action'][0 : start_ts + 1]
+            #         for history_idx in range(start_ts + 1):
+            #             for cam_name in self.camera_names:
+            #                 history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+            #             history_images.append(history_image_dict.copy())
+            #     else:
+            #         history_action = root['/action'][start_ts - self.chunk_size : start_ts]
+            #         for history_idx in range(start_ts - self.chunk_size, start_ts + 1): 
+            #             for cam_name in self.camera_names:
+            #                 history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
+            #             history_images.append(history_image_dict.copy())
+            #     history_action_len = min(history_action_len, self.chunk_size)
             
             
         padded_action = np.zeros((self.chunk_size,) + original_action_shape[1:], dtype=np.float32) 
@@ -196,23 +196,20 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         
         # new axis for different cameras
         all_cam_images = []
-        for cam_name in self.camera_names: ###############################################################
-            # if 'sawyer' in self.dataset_dir: 
-            #     image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
-            # image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=4, fy=4, interpolation=cv.INTER_AREA) # wrist_rgb
+        for cam_name in self.camera_names:
+            if "ACT" in self.policy_class and self.policy_class!= "ACT0E0":
+                image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
                 
             all_cam_images.append(image_dict[cam_name])
         all_cam_images = np.stack(all_cam_images, axis=0)
-        
-        # print(f"{all_cam_images.shape=}")
         
         # history_images 
         history_all_cam_images = []
         for history_idx in range(history_action_len):
             all_history_cam_images = []
             for cam_name in self.camera_names: 
-                # if 'sawyer' in self.dataset_dir:
-                #     history_images[history_idx][cam_name] = cv.resize(history_images[history_idx][cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_LINEAR)
+                if "ACT" in self.policy_class and self.policy_class!= "ACT0E0":
+                    history_images[history_idx][cam_name] = cv.resize(history_images[history_idx][cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
                     
                 all_history_cam_images.append(history_images[history_idx][cam_name])
             all_history_cam_images = np.stack(all_cam_images, axis=0)

@@ -39,12 +39,6 @@ def get_sinusoid_encoding_table(n_position, d_hid):
 
     return torch.FloatTensor(sinusoid_table).unsqueeze(0)
 
-# from utils import get_gpu_mem_info
-
-# def print_gpu_mem():
-#     gpu_mem_total, gpu_mem_used, gpu_mem_free = get_gpu_mem_info()
-#     return (gpu_mem_used/gpu_mem_total)*100
-
 class DETRVAE(nn.Module):
     """ This is the DETR module that performs object detection """
     def __init__(self, backbones, transformer, encoder, state_dim, action_dim, chunk_size, camera_names, use_language=False, use_film=False, num_command=2, use_gpos=True, policy_class='ACT'):
@@ -94,7 +88,7 @@ class DETRVAE(nn.Module):
         
         # backbones
         if backbones is not None:
-            self.input_proj = nn.Conv2d(backbones[0].num_channels, hidden_dim, kernel_size=1) # 卷积层
+            self.input_proj = nn.Conv2d(backbones[0].num_channels, hidden_dim, kernel_size=1) 
             self.backbones = nn.ModuleList(backbones) 
 
         else:
@@ -109,24 +103,24 @@ class DETRVAE(nn.Module):
 
         self.latent_proj = nn.Linear(hidden_dim, self.latent_dim*2) # project hidden state to latent std, var
 
-        # 编码器类型
+        # the class of encoder
         print(policy_class)
-        if 'E0' in policy_class: # 最原始的 Z
+        if 'E0' in policy_class: # original Z
             self.use_Z = True
             self.use_history = False
             self.use_history_images =  False 
             
-        elif 'E1' in policy_class: # 没有编码器的
+        elif 'E1' in policy_class: # no encoder
             self.use_Z = False
             self.use_history = False
             self.use_history_images =  False 
         
-        elif 'E2' in policy_class: # 历史动作编码器
+        elif 'E2' in policy_class: # history action encoder
             self.use_Z = False
             self.use_history = True
             self.use_history_images =  False 
         
-        else: # 'E3' in policy_class: # 历史动作与图像编码器 （默认）
+        else: # 'E3' in policy_class: # history action and image encoder（ default ）
             self.use_Z = False
             self.use_history = True
             self.use_history_images =  True
@@ -147,7 +141,7 @@ class DETRVAE(nn.Module):
             pos_embed_dim = 3
         else:
             pos_embed_dim = 2
-        # pos_embed_dim = 4 if self.use_language else 3 # 因为command_embedding 加了1，因为gpos分开了 加了1
+        # pos_embed_dim = 4 if self.use_language else 3 # command_embedding + 1，gpos spilt + 1
         print(f"Transformer input block number = {pos_embed_dim + chunk_size}")
         self.additional_pos_embed = nn.Embedding(pos_embed_dim, hidden_dim) # learned position embedding for proprio and latent
 
@@ -166,8 +160,6 @@ class DETRVAE(nn.Module):
         is_training = actions is not None # train or val
         bs, _ = qpos.shape # bs = Batch_Size
         
-        # print("模型计算开始 ：", print_gpu_mem())
-        
         # Project the command embedding to the required dimension
         if command_embedding is not None:
             if self.use_language:
@@ -175,11 +167,8 @@ class DETRVAE(nn.Module):
             else:
                 raise NotImplementedError
         
-        # print(f"{self.use_history=}, {self.use_Z=}, {self.use_history_images=}")
-        
-        # return
         ### Obtain latent z from action sequence
-        if self.use_history: # 历史 action 和 images 用 encoder 编码之后输出
+        if self.use_history: # history action and images encoder
             history_action_embed = self.encoder_action_proj(history_action) # (bs, seq, hidden_dim), (8,10) x (8, 512)  = (8, 10, 512)
             cls_embed = self.cls_embed.weight # (1, hidden_dim)
             cls_embed = torch.unsqueeze(cls_embed, axis=0).repeat(bs, 1, 1) # (bs, 1, hidden_dim)
@@ -189,14 +178,14 @@ class DETRVAE(nn.Module):
                     history_action_embed = torch.unsqueeze(history_action_embed, axis=0).repeat(bs, 1, 1)
                     is_pad_history = torch.unsqueeze(is_pad_history, axis=0).repeat(bs, 1) # (1, 90) 8*10
                     
-                    # 利用历史编码的数据，直接输入
+                    # from history frame 
                     history_all_cam_src = torch.from_numpy(history_images[0]).unsqueeze(0).cuda() # (1,10,512) bs = 1
-                    history_all_cam_pos = torch.from_numpy(history_images[1]).unsqueeze(0).cuda() # (1,10,512) bs = 1 # 每次用的都是一模一样的，只要形状一样
+                    history_all_cam_pos = torch.from_numpy(history_images[1]).unsqueeze(0).cuda() # (1,10,512) bs = 1 
                     
                 else:
-                    # 使用backbone 对 history_images 图像处理【只有在训练的时候才会现场编译】【直接把 chunk_size 叠加到 batch_size 上 】
+                    # backbone procese history_images in training 
                     # [batch_size, history_idx, cam_id, chanel, width, height] -> [batch_size * history_idx, cam_id, chanel, width, height]
-                    target_shape = np.append(-1, history_images.shape[2:])  # [ -1,   1,   3, 120, 160]，其中-1参数可以使torch.view自动拼接1、2维度的数据
+                    target_shape = np.append(-1, history_images.shape[2:])  # [ -1,   1,   3, 120, 160]，
                     history_images = history_images.view(target_shape[0], target_shape[1], target_shape[2], target_shape[3], target_shape[4])
                     
                     history_all_cam_src = []
@@ -205,30 +194,29 @@ class DETRVAE(nn.Module):
                         # features, pos = self.backbones[cam_id](history_images[:, cam_id]) # [batch_size * history_idx, , cam_id, chanel, width, height]
                         
                         if self.use_film:
-                            # command_embedding 需要重复batch_size * history_idx次，原本是需要重复batch_size
+                            # command_embedding repeat batch_size * history_idx
                             command_embedding_history = command_embedding.repeat(self.chunk_size,1)
-                            # total_bytes = command_embedding_history.numel() * command_embedding_history.element_size()  # 393216，占用内存0.375MB
-                            # print(f"{command_embedding_history.shape=}, {total_bytes/1024=}")
+                            # total_bytes = command_embedding_history.numel() * command_embedding_history.element_size() 
                             features, pos = self.backbones[cam_id](history_images[:, cam_id], command_embedding_history) # add command_embedding
                         else:
                             # with torch.no_grad():
-                            features, pos = self.backbones[cam_id](history_images[:, cam_id]) # image[:,id]前面的冒号就是表示的batch_size
+                            features, pos = self.backbones[cam_id](history_images[:, cam_id]) # image[batch_size,id]
                         
                         features = features[0] # take the last layer feature [80, 1536, 4, 5]
                         pos = pos[0] # take the last layer pos [10, 512, 4, 5]
                         
-                        history_all_cam_src.append(self.input_proj(features)) # 训练的时候[80, 1536, 4, 5] -> [80, 512, 4, 5] -> [1, 80, 512, 4, 5]
-                        history_all_cam_pos.append(pos)  # pos的 shape 本来就是 512，有多少层呢？
+                        history_all_cam_src.append(self.input_proj(features)) # [80, 1536, 4, 5] -> [80, 512, 4, 5] -> [1, 80, 512, 4, 5]
+                        history_all_cam_pos.append(pos)  # pos shape 512，
                         
-                    # fold camera dimension into width dimension [1, 80, 512, 4*n, 5] -> [80, 512, 4*n, 5], 把多张图片折叠到了 width 维度
+                    # fold camera dimension into width dimension [1, 80, 512, 4*n, 5] -> [80, 512, 4*n, 5], fold to width dim
                     history_all_cam_src = torch.cat(history_all_cam_src, axis=3)  
                     history_all_cam_pos = torch.cat(history_all_cam_pos, axis=3)  # [1, 10, 512, 4*n, 5] -> [10, 512, 4*n, 5]
                     
-                    # 如何处理成Transformer Encoder的输入格式 (bs, 512, 4, 5) -> 4x5=20 (bs, 512, 20) -> (bs,1, 512)
+                    # Transformer Encoder shape (bs, 512, 4, 5) -> 4x5=20 (bs, 512, 20) -> (bs,1, 512)
                     history_all_cam_src = history_all_cam_src.flatten(2) 
                     history_all_cam_src = torch.mean(history_all_cam_src, dim=2).unsqueeze(1) 
                     
-                    # (1, 512, 4, 5) -> (chunk_size, 512,20）->  (chunk_size, 512) -> (1, chunk_size, 512) pos本身不需要batch_size，是共享的
+                    # (1, 512, 4, 5) -> (chunk_size, 512,20）->  (chunk_size, 512) -> (1, chunk_size, 512) pos weight is shared
                     history_all_cam_pos = history_all_cam_pos.flatten(2).repeat(self.chunk_size, 1, 1) 
                     history_all_cam_pos = torch.mean(history_all_cam_pos, dim=2).unsqueeze(0)  
                     
@@ -251,7 +239,7 @@ class DETRVAE(nn.Module):
                 # return
                 encoder_output = self.encoder(encoder_input, pos=pos_embed, src_key_padding_mask=is_pad_history)     
             else:
-                if not is_training: # 需要伪装一个 batch_size 出来
+                if not is_training: # batch_size 
                     history_action_embed = torch.unsqueeze(history_action_embed, axis=0).repeat(bs, 1, 1)
                     is_pad_history = torch.unsqueeze(is_pad_history, axis=0).repeat(bs, 1) # (1, 90) 8*10
                     
@@ -269,13 +257,13 @@ class DETRVAE(nn.Module):
                 
             encoder_output = encoder_output[0] # take cls output only
             
-            latent_info = self.latent_proj(encoder_output) # 映射到 (hidden_dim, self.latent_dim*2)
-            mu = latent_info[:, :self.latent_dim] # mu取前面latent_dim
-            logvar = latent_info[:, self.latent_dim:] # logvar取后面latent_dim
-            latent_sample = reparametrize(mu, logvar) # mu和logvar都在这里用了
+            latent_info = self.latent_proj(encoder_output) # (hidden_dim, self.latent_dim*2)
+            mu = latent_info[:, :self.latent_dim]
+            logvar = latent_info[:, self.latent_dim:] 
+            latent_sample = reparametrize(mu, logvar) 
             latent_input = self.latent_out_proj(latent_sample)
             
-        elif self.use_Z: # 使用风格变量 Z 用 encoder 编码之后输出
+        elif self.use_Z: # Z encoder
             if is_training:
                 # project action sequence to embedding dim, and concat with a CLS token
                 action_embed = self.encoder_action_proj(actions) # (bs, seq, hidden_dim), (8,10) x (8, 10, 512) 
@@ -295,7 +283,6 @@ class DETRVAE(nn.Module):
                 # do not mask cls token
                 cls_joint_is_pad = torch.full((bs, 2), False).to(qpos.device) # cls+qpos=(8,2) ; cls+qpos+gpos=(8, 3)
                 is_pad_action = torch.cat([cls_joint_is_pad, is_pad_action], axis=1)  # (bs, 2+10) -> (8, 12) 
-                # 其实transformer还是固定长度输入，只是使用了cls填充了不是固定长度的值
                 
                 # obtain position embedding
                 pos_embed = self.pos_table.clone().detach()
@@ -306,9 +293,9 @@ class DETRVAE(nn.Module):
                 encoder_output = encoder_output[0] # take cls output only
                 
                 latent_info = self.latent_proj(encoder_output)
-                mu = latent_info[:, :self.latent_dim] # mu 是做隐层的映射，用来干什么了？
-                logvar = latent_info[:, self.latent_dim:] # logvar是隐层的另一个维度的映射提取
-                latent_sample = reparametrize(mu, logvar) # mu和logvar都在这里用了
+                mu = latent_info[:, :self.latent_dim] 
+                logvar = latent_info[:, self.latent_dim:] 
+                latent_sample = reparametrize(mu, logvar) 
                 latent_input = self.latent_out_proj(latent_sample)
                 
             else: 
@@ -316,13 +303,12 @@ class DETRVAE(nn.Module):
                 latent_sample = torch.zeros([bs, self.latent_dim], dtype=torch.float32).to(qpos.device)
                 latent_input = self.latent_out_proj(latent_sample)
                 
-        else: # 什么也没有，没有history，没有Z
+        else: # nothing with history and Z
             mu = logvar = None
             latent_sample = torch.zeros([bs, self.latent_dim], dtype=torch.float32).to(qpos.device)
             latent_input = self.latent_out_proj(latent_sample)
-        # print("历史编码结束 ：", print_gpu_mem())
 
-        if self.backbones is not None: # 用骨干网络做图像预处理
+        if self.backbones is not None: 
             # Image observation features and position embeddings
             
             all_cam_features = []
@@ -331,12 +317,12 @@ class DETRVAE(nn.Module):
                 if self.use_film:
                     features, pos = self.backbones[cam_id](image[:, cam_id], command_embedding) # add command_embedding
                 else:
-                    features, pos = self.backbones[cam_id](image[:, cam_id]) # image[:,id]前面的冒号就是表示的batch_size
+                    features, pos = self.backbones[cam_id](image[:, cam_id]) # image[batch_size,id]
             
                 features = features[0] # take the last layer feature # (bs,1536,4,5)
                 pos = pos[0] # (1,1536,4,5)
                 
-                all_cam_features.append(self.input_proj(features)) # (bs,1536,4,5) x (1536, 512) = (1,512,4,5),(4,5)是卷积核？
+                all_cam_features.append(self.input_proj(features)) # (bs,1536,4,5) x (1536, 512) = (1,512,4,5),(4,5)
                 all_cam_pos.append(pos)
             
             # fold camera dimension into width dimension
@@ -349,7 +335,7 @@ class DETRVAE(nn.Module):
             # proprioception features
             proprio_input_qpos = self.input_proj_robot_state_qpos(qpos)
             if self.use_gpos:
-                proprio_input_gpos = self.input_proj_robot_state_gpos(gpos)# 将gpos单独编码了
+                proprio_input_gpos = self.input_proj_robot_state_gpos(gpos)
             else:
                 proprio_input_gpos = None
 
@@ -363,13 +349,13 @@ class DETRVAE(nn.Module):
                image_feature = src.flatten(2) # (1, 512, 4, 5) -> 4x5=20 (1, 512, 20)
                image_feature = torch.mean(image_feature, dim=2).unsqueeze(1)# (1, 512, 20) -> (1, 512)
                image_pos = pos.flatten(2)# (1, 512, 4, 5) -> 4x5=20 (1, 512, 20)
-               image_pos = torch.mean(image_pos, dim=2).unsqueeze(1)# (1, 512, 20) -> (1, 512)，但是每一个 image_pos不一样吧
+               image_pos = torch.mean(image_pos, dim=2).unsqueeze(1)# (1, 512, 20) -> (1, 512) 
                
                image_feature = image_feature.cpu()
                image_pos = image_pos.cpu()
                encode_history_image_pos = [image_feature, image_pos]
                
-        else: # 不使用backbone
+        else: # without backbone
             proprio_input_qpos = self.input_proj_robot_state_qpos(qpos)
             env_state = self.input_proj_env_state(env_state)
             
@@ -476,7 +462,7 @@ def build_encoder(args):
     return encoder
 
 
-def build_vae(args): # 核心模型部分 称为类VAE模型
+def build_vae(args): 
     action_dim = args.action_dim #14 # TODO hardcode
     state_dim = args.state_dim
     use_gpos = args.use_gpos
@@ -486,26 +472,21 @@ def build_vae(args): # 核心模型部分 称为类VAE模型
     # From image
     backbones = []
     # print(f"{args.camera_names=}")
-    for _ in args.camera_names: # 不同视角用不同的backbone
+    for _ in args.camera_names: # 
         backbone = build_backbone(args)
         backbones.append(backbone)
-        
-    # backbone = build_backbone(args)
-    # backbones.append(backbone)
 
     transformer = build_transformer(args)
-        
     encoder = build_encoder(args)
 
     model = DETRVAE(
-        backbones, # resnet18
-        transformer, # 用来预测动作的
-        encoder, # 用来计算 z 的
+        backbones, 
+        transformer,
+        encoder,
         state_dim=state_dim,
-        # 输出层
         action_dim = action_dim,
-        chunk_size=args.chunk_size, # 每个演示的步数
-        camera_names=args.camera_names, # 相机名字
+        chunk_size=args.chunk_size,
+        camera_names=args.camera_names, 
         use_language=args.use_language,
         use_film="film" in args.backbone,
         use_gpos=use_gpos,

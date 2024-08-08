@@ -2,11 +2,11 @@
 
 ############################### RPT ###############################
 
-# python3 RLBench/tools/dataset_generator_hdf5.py \
-#     --save_path Datasets \
-#     --tasks meat_off_grill \
-#     --variations 1 \
-#     --episodes_per_task 50
+python3 RLBench/tools/dataset_generator_hdf5.py \
+    --save_path Datasets \
+    --tasks meat_off_grill \
+    --variations 1 \
+    --episodes_per_task 50
 
 task_name=("push_button" )
 model_type=(ACT3E3)
@@ -169,5 +169,3 @@ for task in ${task_name[@]}
 #     done
 #   done
   
-  
-# 改变分辨率，生成480x640，推理也用480x640

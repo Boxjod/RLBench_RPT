@@ -9,12 +9,6 @@ from detr.main import build_ACT_model_and_optimizer, build_CNNMLP_model_and_opti
 import IPython
 e = IPython.embed
 
-# from utils import get_gpu_mem_info
-
-# def print_gpu_mem():
-#     gpu_mem_total, gpu_mem_used, gpu_mem_free = get_gpu_mem_info()
-#     return (gpu_mem_used/gpu_mem_total)*100
-
 class ACTPolicy(nn.Module):
     def __init__(self, args_override):
         super().__init__()
@@ -38,7 +32,7 @@ class ACTPolicy(nn.Module):
             history_action = history_action[:, :self.model.chunk_size]
             is_pad_history = is_pad_history[:, :self.model.chunk_size]
             
-            actions = actions[:, :self.model.chunk_size] # 如果输入的actions queries没有10个怎么办[有pad补充了]
+            actions = actions[:, :self.model.chunk_size] 
             is_pad_action = is_pad_action[:, :self.model.chunk_size]
             
             a_hat, is_pad_hat, (mu, logvar) = self.model(qpos, gpos, image, env_state, history_images,
@@ -52,8 +46,8 @@ class ACTPolicy(nn.Module):
             loss_dict['l1'] = l1
 
             if mu != None:
-                total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar) # 如果没有编码器，注释掉
-                loss_dict['kl'] = total_kld[0] # 如果没有编码器，注释掉
+                total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
+                loss_dict['kl'] = total_kld[0] 
                 loss_dict['loss'] = loss_dict['l1'] + loss_dict['kl'] * self.kl_weight #   * self.kl_weight 
             else:
                 loss_dict['loss'] = loss_dict['l1']

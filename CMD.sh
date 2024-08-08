@@ -4,7 +4,7 @@ cd ~/workspace/RLBench_RPT
 . do_server.sh
 
 # git key
-git config --global --replace-all user.password "要修改的密码"
+git config --global --replace-all user.password "password"
 
 # separate with ROS
 source ~/.bashrc
@@ -15,24 +15,22 @@ export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
 # open CoppeliaSim，change the scence 
 bash /home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/coppeliaSim.sh  
 
-# 创建和修改测试RLBench任务【千万不要在这里的CoppeliaSim的界面里保存scence，要不会将任务设计场景覆盖到基础的task_design框架场景】
+# create RLBench task【do not save the scence of CoppeliaSim，it will change the basic scence of the project
 python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5 
 python3 RLBench/tools/task_builder_sawyer.py --task push_button
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop 
 
 
-python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 可以但，效果很差很差 ×××××××××
-python3 RLBench/tools/task_builder_sawyer.py --task lamp_on   # 可以，但效果比较均一 ×××××××××××××
-python3 RLBench/tools/task_builder_sawyer.py --task lift_numbered_block # 可以，但有任务重复，视觉要求很高 ××××××××××××××
-python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # 可以，很有难度 ××××××××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # could but bad×××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # could but bad×××××××××
 
-python3 RLBench/tools/task_builder_sawyer.py --task meat_off_grill # 效果很差很差
+python3 RLBench/tools/task_builder_sawyer.py --task meat_off_grill # could but bad×××××××××
 python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks push_button \
+    --tasks sorting_program5 \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -96,3 +94,15 @@ python RPT_model/imitate_inference.py \
     ; \
     
     
+python RPT_model/imitate_inference.py \
+    --task_name push_button \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 2000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    ; \
+python RPT_model/imitate_inference.py \
+    --task_name push_button \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    --eval --temporal_agg \

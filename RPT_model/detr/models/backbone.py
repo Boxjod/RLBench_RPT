@@ -195,7 +195,7 @@ class Backbone(BackboneBase):
         # )  # Use this to preprocess images the same way as the pretrained model (e.g., ResNet-18).
 
     def forward(self, tensor):
-        # tensor = self.preprocess(tensor) # 第一版的ACT没有做 preprocess,做了效果很不好
+        # tensor = self.preprocess(tensor) 
         xs = self.body(tensor)
         return xs
 
@@ -206,13 +206,11 @@ class Joiner(nn.Sequential):
 
     def forward(self, tensor_list: NestedTensor):
         xs = self[0](tensor_list)
-        # xs的形状大小是啥
         out: List[NestedTensor] = []
         pos = []
         for name, x in xs.items():
             out.append(x) 
-            # position encoding
-            pos.append(self[1](x).to(x.dtype)) # 里面根本没有用到x的值
+            pos.append(self[1](x).to(x.dtype)) 
             
         return out, pos
 

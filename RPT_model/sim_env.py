@@ -10,7 +10,7 @@ from rlbench.backend.exceptions import *
 import os, socket
 BOX_POSE = [None] # to be changed from outside 
 
-def make_sim_env(task_name):
+def make_sim_env(task_name, policy_class):
     """
     Environment for simulated robot bi-manual manipulation, with joint position control
     Action space:      [left_arm_qpos (6),             # absolute joint position
@@ -32,8 +32,8 @@ def make_sim_env(task_name):
     if socket.gethostname() != 'XJ':
         os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/arx-4090/workspace/CoppeliaSim"
     
-    img_size = [640, 480] # 640, 480 # 160, 120
-    
+    img_size = [640, 480] # 160, 120
+        
     obs_config = ObservationConfig()
     
     obs_config.set_all(False)
@@ -47,7 +47,7 @@ def make_sim_env(task_name):
     obs_config.wrist_camera.depth_in_meters = False
     obs_config.front_camera.image_size = img_size
     
-    headless_val = False # False 
+    headless_val = True # False 
     if socket.gethostname() != 'XJ':
         headless_val = True
         

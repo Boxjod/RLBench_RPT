@@ -25,7 +25,7 @@ from intera_core_msgs.msg import (
     IODeviceStatus,
     EndpointState,)
 
-########################### 修改的参数 ########################### 
+
 target_color = 'red'
 box_color = 'red'
 
@@ -85,7 +85,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
   qpos_initial = [] 
   gpos_initial = []
   
-  # update qpos_initial 和 gpos_initial
+  # update qpos_initial and gpos_initial
   def refresh_initial_pos():
     nonlocal qpos_initial, gpos_initial
     qpos_dict = limb.joint_angles()
@@ -302,7 +302,7 @@ def observation_to_action(policy, max_timesteps, ckpt_dir):
         if gripper_state == 0:
           gripper.open()
         else:
-          print("检测到碰撞")
+          print("detect collision")
           subscriber_control(0)
         timestep = max_timesteps
         

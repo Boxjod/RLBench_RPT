@@ -90,9 +90,7 @@ class TaskEnvironment(object):
 
         self._reset_called = True
         # Returns a list of descriptions and the first observation
-        
         ####################################################################################################################################
-        # 每次初始化之后直接跳过no_record的步骤
         waypoints = self._scene.task.get_waypoints()
                   
         if len(waypoints) == 0:
@@ -191,7 +189,7 @@ class TaskEnvironment(object):
                 except Exception as e:
                     attempts -= 1
                     logging.info('Bad demo. ' + str(e)) # nolinear path is bad demo
-                    print(" bad demo 重新生成 demo")
+                    print(" bad demo regenerate demo")
             if attempts <= 0:
                 raise RuntimeError(
                     'Could not collect demos. Maybe a problem with the task?')

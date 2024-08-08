@@ -119,7 +119,7 @@ def build_CNNMLP_model_and_optimizer(args_override):
     return model, optimizer
 
 def build_diffusion_model_and_optimizer(args_override):
-    # 加载参数
+
     args = argparse.Namespace(**args_override)
     model = build_diffusion_model(args)
     model.cuda()

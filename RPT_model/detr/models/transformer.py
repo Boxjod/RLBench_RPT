@@ -51,9 +51,9 @@ class Transformer(nn.Module):
         if len(src.shape) == 4: # has H and W
             # flatten NxCxHxW to HWxNxC
             bs, c, h, w = src.shape
-            src = src.flatten(2).permute(2, 0, 1) # (bs, 512, 4, 5) -> 4x5=20 (20, bs, 512) , 所以一张照片结果是20个encoder输入
+            src = src.flatten(2).permute(2, 0, 1) # (bs, 512, 4, 5) -> 4x5=20 (20, bs, 512) ,so one picture transform to 20 encoder input block
             
-            pos_embed = pos_embed.flatten(2).permute(2, 0, 1) # (1, 512, 4, 5) ->（20, 1, 512） # pos_embed传进来的时候是没有batch_size信息的
+            pos_embed = pos_embed.flatten(2).permute(2, 0, 1) # (1, 512, 4, 5) ->（20, 1, 512） # pos_embed no connected with batch_size
             pos_embed = pos_embed.repeat(1, bs, 1) # （20, 1, 512） ->（20, 8, 512）
             
             query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)

@@ -35,10 +35,10 @@ def main():
     
     filename = "/home/boxjod/sawyer_ws/intera2.sh"
     with open(filename, "r", encoding='utf-8') as file:
-        content = file.readlines()    # 读取文件的所有行
+        content = file.readlines()    
     content[183 - 1] = command + '\n'
     with open(filename, "w", encoding="utf-8") as file:
-        file.writelines(content)    # 将更新后的内容写入文件
+        file.writelines(content)   
     os.system("cd /home/boxjod/sawyer_ws ;" + 'bash ' + filename)
      
      

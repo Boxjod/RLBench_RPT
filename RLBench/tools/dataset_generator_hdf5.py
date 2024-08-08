@@ -13,23 +13,23 @@ import rlbench.backend.task as task
 
 import os, socket
 import pickle
-from PIL import Image
-from rlbench.backend import utils
 from rlbench.backend.const import *
 import numpy as np
 
 from absl import app
 from absl import flags
-import time
 import h5py
-
 import sys
 sys.path.append(".")
 
 from RPT_model.constants import SIM_TASK_CONFIGS
-
 import json
+
 import cv2
+from PIL import Image
+from rlbench.backend import utils
+import time
+
 
 os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = "/home/boxjod/Gym/RLBench/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" 
 if socket.gethostname() != 'XJ':
@@ -42,7 +42,8 @@ flags.DEFINE_string('save_path',
                     'Where to save the demos.')
 flags.DEFINE_list('tasks', [],
                   'The tasks to collect. If empty, all tasks are collected.')
-flags.DEFINE_list('image_size', [160, 120], # 640, 480 [128, 128],  [height x width]，coppliasim是 [width x height]
+
+flags.DEFINE_list('image_size', [640, 480], # 640, 480  [height x width]，coppliasim [width x height]
                   'The size of the images tp save.')
 flags.DEFINE_enum('renderer',  'opengl3', ['opengl', 'opengl3'],
                   'The renderer to use. opengl does not include shadows, '
@@ -96,7 +97,7 @@ def save_demo(demo, example_path, ex_idx):
         '/action': [], 
         '/action_qpos': [], 
         '/observations/images/wrist': [],
-        '/observations/images/wrist_depth': [],
+        # '/observations/images/wrist_depth': [], # not recommend
         '/observations/images/head': [],
         '/observations/qpos': [],
         '/observations/gpos': [],
@@ -110,19 +111,17 @@ def save_demo(demo, example_path, ex_idx):
         if i != 0: 
             data_dict['/action'].append(np.append(obs.gripper_pose, obs.gripper_open))
             data_dict['/action_qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
-            # diff_gpos = ((obs.gripper_pose -  data_dict['/observations/gpos'][i-1]))*10 #* 100)//100 
-            # data_dict['/action'].append(np.append(diff_gpos, obs.gripper_open))
            
         data_dict['/observations/images/wrist'].append(obs.wrist_rgb) # 480， 640， 3
+        data_dict['/observations/images/head'].append(obs.head_rgb)
         
-        wrist_depth0 = obs.wrist_depth*255.0*5
-        wrist_depth = cv2.applyColorMap(cv2.convertScaleAbs(wrist_depth0, alpha=1), cv2.COLORMAP_JET)
-        
+        # if use depth, its really work in sim but not in real  # not recommend
+        # wrist_depth0 = obs.wrist_depth*255.0*5
+        # wrist_depth = cv2.applyColorMap(cv2.convertScaleAbs(wrist_depth0, alpha=1), cv2.COLORMAP_JET)
         # wrist_depth = utils.float_array_to_rgb_image(obs.wrist_depth, scale_factor=DEPTH_SCALE)
         # wrist_depth = np.clip(np.array(wrist_depth), 0, 255).astype(np.uint8)
-        data_dict['/observations/images/wrist_depth'].append(wrist_depth)
+        # data_dict['/observations/images/wrist_depth'].append(wrist_depth)
         
-        data_dict['/observations/images/head'].append(obs.head_rgb)
         data_dict['/observations/qpos'].append(np.append(obs.joint_positions, obs.gripper_open))
         data_dict['/observations/gpos'].append(np.append(obs.gripper_pose, obs.gripper_open))
         
@@ -138,9 +137,9 @@ def save_demo(demo, example_path, ex_idx):
         action_qpos = root.create_dataset('action_qpos', (max_timesteps, 8))
         obs = root.create_group('observations')
         image = obs.create_group('images')
-        image.create_dataset('wrist', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) # 640, 480 160, 120, 120, 160
-        image.create_dataset('wrist_depth', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) 
-        image.create_dataset('head', (max_timesteps, 120, 160, 3), dtype='uint8',chunks=(1, 120, 160, 3), ) 
+        image.create_dataset('wrist', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) # 640, 480 160, 120, 120, 160
+        # image.create_dataset('wrist_depth', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) 
+        image.create_dataset('head', (max_timesteps, 480, 640, 3), dtype='uint8',chunks=(1, 480, 640, 3), ) 
         qpos = obs.create_dataset('qpos', (max_timesteps, 8))
         gpos = obs.create_dataset('gpos', (max_timesteps, 8))
         

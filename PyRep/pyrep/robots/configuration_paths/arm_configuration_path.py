@@ -172,13 +172,13 @@ class ArmConfigurationPath(ConfigurationPath):
                 if lengths[i] <= pos <= lengths[i + 1]:
                     t = (pos - lengths[i]) / (lengths[i + 1] - lengths[i])
                     
-                    # 控制演示步数输出固定数值
+                    # control the fix number of steps
                     if self.count < i:
                         state = 2
                         self.count = self.count + 1
                         
                     # For each joint   
-                    offset = len(self._arm.joints) * i # 7个7个的取姿态数据，用插补法插入
+                    offset = len(self._arm.joints) * i 
                     p1 = self._path_points[
                          offset:offset + len(self._arm.joints)]
                     offset = self._arm._num_joints * (i + 1)
@@ -188,7 +188,7 @@ class ArmConfigurationPath(ConfigurationPath):
                     qs = p1 + dx * t
                     self._joint_position_action = qs
                     
-                    # 实现固定head关节固定摄像头方向
+                    # make the head camera always forward 
                     from pyrep.objects.joint import Joint
                     head_joint = Joint("Sawyer_headJoint")
                     head_joint.set_joint_target_position(-qs[0])
@@ -198,7 +198,7 @@ class ArmConfigurationPath(ConfigurationPath):
                    
                     break
         if state == 1:
-            sim.simRMLRemove(self._rml_handle) # 不会停留
+            sim.simRMLRemove(self._rml_handle) 
             
         return state
 

@@ -40,7 +40,7 @@ def break_text(text, break_points=(",", ".", ";", ":", "?", "!")):
     return lines
 
 
-def modify_transcription(text):# 纠正一些容易语音识别错误的文字
+def modify_transcription(text):
     """Modify the transcription text."""
     text = text.lower()
     text = text.replace("the back", "the bag")
@@ -60,7 +60,7 @@ def modify_transcription(text):# 纠正一些容易语音识别错误的文字
     return modify_real_time(text)
 
 
-def modify_real_time(text): # 去掉一些感谢词
+def modify_real_time(text):
     text = text.lower()
     # Handle hallucinations
     text = text.replace("thanks for watching", "")

@@ -19,6 +19,8 @@ from sim_env import BOX_POSE
 from pyrep.errors import ConfigurationPathError
 from command_script.command_utils import initialize_model_and_tokenizer, encode_text
 import IPython
+import cv2 as cv
+
 e = IPython.embed
 
 def main(args):
@@ -175,22 +177,21 @@ def main(args):
 
         for ckpt_name, success_rate, avg_return in results:
             print(f'{ckpt_name}: {success_rate=} {avg_return=}')
-        print()
-        exit() 
-      
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, 
-                                                           max_len=max_skill_len, chunk_size=chunk_size, command_list=commands, use_language=use_language, language_encoder=language_encoder,
-                                                           use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
 
-    # save dataset stats
-    if not os.path.isdir(ckpt_dir):
-        os.makedirs(ckpt_dir)
-        
-    stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl') 
-    with open(stats_path, 'wb') as f: 
-        pickle.dump(stats, f)
-        
-    train_bc(train_dataloader, val_dataloader, config) 
+    else:
+        train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val, policy_class, 
+                                                            max_len=max_skill_len, chunk_size=chunk_size, command_list=commands, use_language=use_language, language_encoder=language_encoder,
+                                                            use_gpos=use_gpos, use_diff=use_diff, action_is_qpos=action_is_qpos)
+
+        # save dataset stats
+        if not os.path.isdir(ckpt_dir):
+            os.makedirs(ckpt_dir)
+            
+        stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl') 
+        with open(stats_path, 'wb') as f: 
+            pickle.dump(stats, f)
+            
+        train_bc(train_dataloader, val_dataloader, config) 
     
 
 def make_policy(policy_class, policy_config):
@@ -217,26 +218,34 @@ def make_optimizer(policy_class, policy):
 
 from rlbench.backend.utils import float_array_to_rgb_image
 from rlbench.backend.const import DEPTH_SCALE
-def get_image(ts, camera_names): 
+def get_image(ts, camera_names, policy_class): 
     curr_images = []
     
-    curr_image = rearrange(ts.wrist_rgb, 'h w c -> c h w')
+    # print(f'{camera_names=}')
+    wrist_rgb = ts.wrist_rgb 
+    if "ACT" in policy_class and policy_class!= "ACT0E0":
+        wrist_rgb = cv.resize(wrist_rgb, (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
     
+    
+    curr_image = rearrange(wrist_rgb, 'h w c -> c h w')
     curr_images.append(curr_image)    
-
-    if "wrist_depth" in camera_names:
-        # wrist_depth = float_array_to_rgb_image(ts.wrist_depth, scale_factor=DEPTH_SCALE)
-        # wrist_depth = np.clip(np.array(wrist_depth), 0, 255).astype(np.uint8)
+    
+    # if "wrist_depth" in camera_names: # not recommend
+    #     # wrist_depth = float_array_to_rgb_image(ts.wrist_depth, scale_factor=DEPTH_SCALE)
+    #     # wrist_depth = np.clip(np.array(wrist_depth), 0, 255).astype(np.uint8)
+    #     import cv2
+    #     wrist_depth0 = ts.wrist_depth*255.0*5
+    #     wrist_depth = cv2.applyColorMap(cv2.convertScaleAbs(wrist_depth0, alpha=1), cv2.COLORMAP_JET)
         
-        import cv2
-        wrist_depth0 = ts.wrist_depth*255.0*5
-        wrist_depth = cv2.applyColorMap(cv2.convertScaleAbs(wrist_depth0, alpha=1), cv2.COLORMAP_JET)
-        
-        curr_image = rearrange(wrist_depth, 'h w c -> c h w')
-        curr_images.append(curr_image)
+    #     curr_image = rearrange(wrist_depth, 'h w c -> c h w')
+    #     curr_images.append(curr_image)
         
     if "head" in camera_names:    
+        head_rgb = ts.head_rgb
+        if "ACT" in policy_class and policy_class!= "ACT0E0":
+            head_rgb = cv.resize(head_rgb, (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
         curr_image = rearrange(ts.head_rgb, 'h w c -> c h w')
+        
         curr_images.append(curr_image)
         
     curr_image = np.stack(curr_images, axis=0)
@@ -294,17 +303,14 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
     pre_process_action_history = lambda s_action: (s_action - stats['action_mean']) / stats['action_std']
     
     if policy_class == "Diffusion":
-        post_process = (
-            lambda a: ((a + 1) / 2) * (stats["action_max"] - stats["action_min"])
-            + stats["action_min"]
-        )
+        post_process = (lambda a: ((a + 1) / 2) * (stats["action_max"] - stats["action_min"]) + stats["action_min"])
     else: 
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
     
     # load environment
     if not real_robot:
         from sim_env import make_sim_env
-        env = make_sim_env(task_name)
+        env = make_sim_env(task_name, policy_class)
         print("random seed = ", seed)
         env_max_reward = 1 # env.task.max_rewardz
     query_frequency = policy_config['chunk_size']
@@ -313,14 +319,13 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         chunk_size = policy_config['chunk_size']
 
     max_timesteps = int(max_timesteps * 1.0) # may increase for real-world tasks
-    if config['policy_class'] == "CNNMLP":
-        max_timesteps = int(max_timesteps * 1.5) 
+    
+    # if config['policy_class'] == "CNNMLP":
+    #     max_timesteps = int(max_timesteps * 1.5) 
 
     num_rollouts = num_verification 
-    
     command_list = []
     command_embedding = None
-    
     episode_returns = []
     highest_rewards = []
     for rollout_id in range(num_rollouts):
@@ -331,8 +336,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         else:
             random_variation = np.random.randint(3)
             env.set_variation(random_variation) 
-            
-        descriptions, ts_obs = env.reset() # 重置帧数
+        descriptions, ts_obs = env.reset() 
 
         ### evaluation loop
         if temporal_agg:
@@ -390,8 +394,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                 history_action_numpy = pre_process_action_history(history_action_numpy)
                 history_action_numpy = torch.from_numpy(history_action_numpy).float().cuda()
                 
-                curr_image = get_image(obs, camera_names) 
-
+                curr_image = get_image(obs, camera_names, policy_class) 
+                
                 ### query policy
                 if 'ACT' in config['policy_class'] or 'Diffusion' in config["policy_class"]:  # config['policy_class'] == "ACT":
                     if t % query_frequency == 0:
@@ -419,7 +423,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             prefix = "user" if language_correction else "prediction"
                             command_list.append(f"{prefix}: {command}")
                         
-                    if temporal_agg: # 做了一个 Action Chunking
+                    if temporal_agg: # Action Chunking
                         all_time_actions[[t], t:t+chunk_size] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
                         
@@ -449,8 +453,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     history_action = np.insert(history_action, 0, action, axis=0)[:chunk_size]
                     history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:chunk_size]
                     history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:chunk_size]
-                
-                ###################################################
+
                 gripper_state = action[7]
                 # print(f"{timestep}:{action[7]=}")
                 
@@ -465,59 +468,59 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             done = env._robot.gripper.actuate(0, 1.0)
                         elif gripper_state > 1.0 and gripper_flag == 2:
                             print(timestep, ": open_gripper: ", gripper_state)
-                            gripper_flag = gripper_flag + 1
+                            gripper_flag = gripper_flag - 1
                             while done != True:
                                 done = env._robot.gripper.actuate(1, 0.4)
                                 env._scene.step() 
-                            
                 else:
                     try:
                         next_gripper_position = action[0:3] # next 
                         next_gripper_quaternion = action[3:7]
                         path.append(env._robot.arm.get_linear_path(position=next_gripper_position, quaternion=next_gripper_quaternion, steps=10, relative_to=env._robot.arm, ignore_collisions=True))
                         gripper_state = action[7]
-                        print(f"{timestep}:{gripper_state=}")
+                        # print(f"{timestep}:{gripper_state=}")
                         
                         done = False
-                        if task_name =="sorting_program5":
-                            if gripper_state < 0.60 and gripper_flag < 2 : 
-                                print(timestep,": close_gripper: ", gripper_state)
-                                gripper_flag = gripper_flag + 2 
-                                # while done != True:
-                                done = env._robot.gripper.actuate(0, 1.0)
-                                    # env._scene.step() 
-                                
-                                # clear history information
-                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                                qpos_initial = obs.joint_positions
-                                gpos_initial = obs.gripper_pose
+                        
+                        # if task_name =="sorting_program5":
+                        if gripper_state < 0.60 and gripper_flag < 2 : 
+                            print(timestep,": close_gripper: ", gripper_state)
+                            gripper_flag = gripper_flag + 2 
+                            # while done != True:
+                            done = env._robot.gripper.actuate(0, 1.0)
+                            
+                            # clear history information
+                            history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                            history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                            qpos_initial = obs.joint_positions
+                            gpos_initial = obs.gripper_pose
 
-                            elif gripper_state > 0.6 and gripper_flag == 2 :
-                                print(timestep, ": open_gripper: ", gripper_state)
-                                gripper_flag = gripper_flag + 1
-                                while done != True:
-                                    done = env._robot.gripper.actuate(1, 0.4)
-                                    env._scene.step() 
-                                    
-                                # clear history information
-                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                                qpos_initial = obs.joint_positions
-                                gpos_initial = obs.gripper_pose
-                        else:
-                            if gripper_state < 0.90 and gripper_flag < 2 : 
-                                print(timestep,": close_gripper: ", gripper_state)
-                                gripper_flag = gripper_flag + 2 
-                                # while done != 1:
-                                done = env._robot.gripper.actuate(0, 1.0)
-                                    # env._scene.step() 
-                            elif gripper_state > 0.7 and gripper_flag == 2 :
-                                print(timestep, ": open_gripper: ", gripper_state)
-                                gripper_flag = gripper_flag + 1
-                                while done != True:
-                                    done = env._robot.gripper.actuate(1, 0.4)
-                                    env._scene.step() 
+                        elif gripper_state > 0.6 and gripper_flag == 2 :
+                            print(timestep, ": open_gripper: ", gripper_state)
+                            gripper_flag = gripper_flag - 1
+                            while done != True:
+                                done = env._robot.gripper.actuate(1, 0.4)
+                                env._scene.step() 
+                                
+                            # clear history information
+                            history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                            history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                            qpos_initial = obs.joint_positions
+                            gpos_initial = obs.gripper_pose
+                            
+                        # else:
+                        #     if gripper_state < 0.90 and gripper_flag < 2 : 
+                        #         print(timestep,": close_gripper: ", gripper_state)
+                        #         gripper_flag = gripper_flag + 2 
+                        #         # while done != 1:
+                        #         done = env._robot.gripper.actuate(0, 1.0)
+                        #             # env._scene.step() 
+                        #     elif gripper_state > 0.8 and gripper_flag == 2 :
+                        #         print(timestep, ": open_gripper: ", gripper_state)
+                        #         gripper_flag = gripper_flag + 1
+                        #         while done != True:
+                        #             done = env._robot.gripper.actuate(1, 0.4)
+                        #             env._scene.step() 
                         
                         path[t].visualize() 
                         
@@ -573,11 +576,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
 
     return success_rate, avg_return
 
-# from utils import get_gpu_mem_info
-
-# def print_gpu_mem():
-#     gpu_mem_total, gpu_mem_used, gpu_mem_free = get_gpu_mem_info()
-#     return (gpu_mem_used/gpu_mem_total)*100
 
 def forward_pass(data, policy, policy_class=None, use_gpos=True, use_language=False):
     
