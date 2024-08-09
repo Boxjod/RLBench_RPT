@@ -145,7 +145,7 @@ class DETRVAE(nn.Module):
         print(f"Transformer input block number = {pos_embed_dim + chunk_size}")
         self.additional_pos_embed = nn.Embedding(pos_embed_dim, hidden_dim) # learned position embedding for proprio and latent
     
-    def encode(self, qpos, history_images=None, history_action=None, is_pad_history=None, actions=None, is_pad_action=None, command_embedding=None):
+    def encode(self, qpos, history_images, history_action, is_pad_history, actions, is_pad_action, command_embedding):
         
         is_training = actions is not None # train or val
         bs, _ = qpos.shape # bs = Batch_Size
@@ -308,7 +308,7 @@ class DETRVAE(nn.Module):
         is_training = actions is not None # train or val
         bs, _ = qpos.shape # bs = Batch_Size
         
-        latent_input, mu, logvar = self.encode(self, qpos, history_images=history_images, history_action=history_action, is_pad_history=is_pad_history, actions=actions, is_pad_action=is_pad_action, command_embedding=command_embedding)
+        latent_input, mu, logvar = self.encode( qpos, history_images, history_action, is_pad_history, actions, is_pad_action, command_embedding)
         
         # Project the command embedding to the required dimension
         if command_embedding is not None:

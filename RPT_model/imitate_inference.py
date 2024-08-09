@@ -493,7 +493,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             qpos_initial = obs.joint_positions
                             gpos_initial = obs.gripper_pose
 
-                        elif gripper_state > 0.6 and gripper_flag == 2 :
+                        elif gripper_state > 0.8 and gripper_flag == 2 :
                             print(timestep, ": open_gripper: ", gripper_state)
                             gripper_flag = gripper_flag - 1
                             while done != True:
