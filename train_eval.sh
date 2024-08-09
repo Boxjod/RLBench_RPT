@@ -10,7 +10,7 @@
 
 task_name=("meat_off_grill" )
 model_type=(ACT3E0)
-epoch_list=(1000 2000 3000 4000 5000 6000 7000 8000 9000 10000 11000 12000 13000 14000 15000 16000)
+epoch_list=(1000 2000 3000 4000 5000 6000 7000)
 backbone_list=("resnet18")
 chunk_size=(30)
 for task in ${task_name[@]}
