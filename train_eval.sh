@@ -2,13 +2,13 @@
 
 ############################### RPT ###############################
 
-# python3 RLBench/tools/dataset_generator_hdf5.py \
-#     --save_path Datasets \
-#     --tasks meat_on_grill \
-#     --variations 1 \
-#     --episodes_per_task 50
+python3 RLBench/tools/dataset_generator_hdf5.py \
+    --save_path Datasets \
+    --tasks phone_on_base \
+    --variations 1 \
+    --episodes_per_task 50
 
-task_name=("meat_on_grill" )
+task_name=("phone_on_base" )
 model_type=(ACT3E0)
 epoch_list=(1000 2000 3000 4000 5000 6000 7000)
 backbone_list=("efficientnet_b0")

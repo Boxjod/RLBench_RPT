@@ -100,8 +100,8 @@ python RPT_model/imitate_inference.py \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18 \
     ; \
 python RPT_model/imitate_inference.py \
-    --task_name meat_off_grill \
+    --task_name meat_on_grill \
     --ckpt_dir Trainings \
-    --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --policy_class ACT3E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \

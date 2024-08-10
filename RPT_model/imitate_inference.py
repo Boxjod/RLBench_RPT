@@ -455,13 +455,14 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:chunk_size]
 
                 gripper_state = action[7]
-                # print(f"{timestep}:{action[7]=}")
+                
                 
                 if action_is_qpos:
                     ts_obs, reward, terminate = env.step(action)
                     qpos_list.append(qpos_numpy)
                     target_gpos_list.append(action)
                     rewards.append(reward) 
+                    
                     if config['policy_class'] == "CNNMLP":
                         if gripper_state < 0.85 and gripper_flag < 2 : 
                             gripper_flag = gripper_flag + 2
@@ -478,33 +479,45 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         next_gripper_quaternion = action[3:7]
                         path.append(env._robot.arm.get_linear_path(position=next_gripper_position, quaternion=next_gripper_quaternion, steps=10, relative_to=env._robot.arm, ignore_collisions=True))
                         gripper_state = action[7]
-                        # print(f"{timestep}:{gripper_state=}")
-                        
+                        gripper_state = 1 if gripper_state >= 1 else gripper_state
+                        gripper_state = 0 if gripper_state <= 0 else gripper_state
+
                         done = False
-                        if gripper_state < 0.85 and gripper_flag < 2 : 
-                            print(timestep,": close_gripper: ", gripper_state)
+                        if gripper_state < 0.6 : # and gripper_flag < 2 
+                            # print(timestep,": close_gripper: ", gripper_state)
                             gripper_flag = gripper_flag + 2 
-                            done = env._robot.gripper.actuate(0, 1.0)
-                            
+                            gripper_state = 0
+                            # while not done:
+                            #     done = env._robot.gripper.actuate(0, 1.0)
+                            #     env._scene.step() 
+                            # done = env._robot.gripper.actuate(0.1, 1.0)
+                            # done = env._robot.gripper.actuate(0.1, 1.0)
+                            # env._scene.step() 
                             # clear history information
                             history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
                             history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                             qpos_initial = obs.joint_positions
                             gpos_initial = obs.gripper_pose
 
-                        elif gripper_state > 1.0 and gripper_flag == 2 :
+                        elif gripper_state >= 1.0 : # and gripper_flag >= 2 
                             print(timestep, ": open_gripper: ", gripper_state)
                             gripper_flag = gripper_flag - 1
-                            while done != True:
-                                done = env._robot.gripper.actuate(1, 0.4)
-                                env._scene.step() 
+                            # gripper_state = 1
+                            # while done != True:
+                            #     done = env._robot.gripper.actuate(1, 0.4)
+                            #     env._scene.step() 
                                 
                             # clear history information
                             history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
                             history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                             qpos_initial = obs.joint_positions
                             gpos_initial = obs.gripper_pose
+                            
+                        print(f"{timestep}:{gripper_state=}")
                         
+                        while not env._robot.gripper.actuate(gripper_state, 0.1):
+                            env._scene.step() 
+                            
                         path[t].visualize() 
                         
                         done = False 
