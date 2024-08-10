@@ -23,13 +23,13 @@ python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop
 python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # could but bad×××××××××
 python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # could but bad×××××××××
 
-python3 RLBench/tools/task_builder_sawyer.py --task meat_off_grill # could but bad×××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task meat_on_grill # could but bad×××××××××
 python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks close_fridge \
+    --tasks meat_on_grill \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -96,8 +96,8 @@ python RPT_model/imitate_inference.py \
 python RPT_model/imitate_inference.py \
     --task_name meat_off_grill \
     --ckpt_dir Trainings \
-    --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    --policy_class ACT0E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18 \
     ; \
 python RPT_model/imitate_inference.py \
     --task_name meat_off_grill \

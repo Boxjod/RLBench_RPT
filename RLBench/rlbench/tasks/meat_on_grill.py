@@ -22,12 +22,12 @@ class MeatOnGrill(Task):
         conditions = [NothingGrasped(self.robot.gripper)]
         if index == 0:
             x, y, _ = self._chicken.get_position()
-            self._w1.set_position([x, y, self._w1z])
+            self._w1.set_position([x+0.03, y, self._w1z])
             conditions.append(
                 DetectedCondition(self._chicken, self._success_sensor))
         else:
             x, y, _ = self._steak.get_position()
-            self._w1.set_position([x, y, self._w1z])
+            self._w1.set_position([x+0.03, y, self._w1z])
             conditions.append(
                 DetectedCondition(self._steak, self._success_sensor))
         self.register_success_conditions(conditions)

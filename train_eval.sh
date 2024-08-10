@@ -2,17 +2,17 @@
 
 ############################### RPT ###############################
 
-# python3 RLBench/tools/dataset_generator_hdf5.py \
-#     --save_path Datasets \
-#     --tasks meat_off_grill \
-#     --variations 1 \
-#     --episodes_per_task 50
+python3 RLBench/tools/dataset_generator_hdf5.py \
+    --save_path Datasets \
+    --tasks meat_on_grill \
+    --variations 1 \
+    --episodes_per_task 50
 
-task_name=("meat_off_grill" )
+task_name=("meat_on_grill" )
 model_type=(ACT3E0)
 epoch_list=(1000 2000 3000 4000 5000 6000 7000)
-backbone_list=("resnet18")
-chunk_size=(30)
+backbone_list=("efficientnet_b0")
+chunk_size=(20)
 for task in ${task_name[@]}
   do
   for model in ${model_type[@]}
@@ -27,12 +27,12 @@ for task in ${task_name[@]}
           echo 'train on model=' $model ', task=' $task ', epoch=' $epoch ',  chunk_size='$chunk 
           echo '##################################################################'
           
-          # CUDA_VISIBLE_DEVICES=0 python3 RPT_model/imitate_inference.py \
-          # --task_name $task \
-          # --ckpt_dir Trainings \
-          # --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-          # --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
-          # ; \
+          CUDA_VISIBLE_DEVICES=0 python3 RPT_model/imitate_inference.py \
+          --task_name $task \
+          --ckpt_dir Trainings \
+          --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+          --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
+          ; \
           CUDA_VISIBLE_DEVICES=0 python3 RPT_model/imitate_inference.py \
           --task_name $task \
           --ckpt_dir Trainings \

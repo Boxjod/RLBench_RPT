@@ -481,11 +481,10 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         # print(f"{timestep}:{gripper_state=}")
                         
                         done = False
-                        if gripper_state < 0.60 and gripper_flag < 2 : 
+                        if gripper_state < 0.85 and gripper_flag < 2 : 
                             print(timestep,": close_gripper: ", gripper_state)
                             gripper_flag = gripper_flag + 2 
-                            while done != True:
-                                done = env._robot.gripper.actuate(0, 1.0)
+                            done = env._robot.gripper.actuate(0, 1.0)
                             
                             # clear history information
                             history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
@@ -493,7 +492,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                             qpos_initial = obs.joint_positions
                             gpos_initial = obs.gripper_pose
 
-                        elif gripper_state > 0.8 and gripper_flag == 2 :
+                        elif gripper_state > 1.0 and gripper_flag == 2 :
                             print(timestep, ": open_gripper: ", gripper_state)
                             gripper_flag = gripper_flag - 1
                             while done != True:
