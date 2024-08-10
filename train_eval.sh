@@ -4,11 +4,11 @@
 
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks phone_on_base \
+    --tasks light_bulb_out \
     --variations 1 \
     --episodes_per_task 50
 
-task_name=("phone_on_base" )
+task_name=("light_bulb_out" )
 model_type=(ACT3E0)
 epoch_list=(1000 2000 3000 4000 5000 6000 7000)
 backbone_list=("efficientnet_b0")

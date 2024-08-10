@@ -20,16 +20,18 @@ python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
 python3 RLBench/tools/task_builder_sawyer.py --task push_button
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop 
 
-python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # could but bad×××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 夹不起来
+python3 RLBench/tools/task_builder_sawyer.py --task meat_on_grill # 夹不起来
+
 python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # could but bad×××××××××
 
-python3 RLBench/tools/task_builder_sawyer.py --task meat_on_grill # could but bad×××××××××
-python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
+python3 RLBench/tools/task_builder_sawyer.py --task empty_dishwasher # could but bad×××××××××
+python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out
 
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks phone_on_base \
+    --tasks light_bulb_out \
     --variations 1 \
     --episodes_per_task 50 \
 ; \

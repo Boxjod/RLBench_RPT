@@ -32,6 +32,13 @@ SIM_TASK_CONFIGS = {
         'num_variation': 1,
         'camera_names': ['wrist']
     },
+    'light_bulb_out':{ 
+        'dataset_dir': DATA_DIR + '/light_bulb_out/variation0', 
+        'episode_len': 60, 
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
 
 }
 
