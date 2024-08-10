@@ -2,11 +2,11 @@
 
 ############################### RPT ###############################
 
-python3 RLBench/tools/dataset_generator_hdf5.py \
-    --save_path Datasets \
-    --tasks meat_on_grill \
-    --variations 1 \
-    --episodes_per_task 50
+# python3 RLBench/tools/dataset_generator_hdf5.py \
+#     --save_path Datasets \
+#     --tasks meat_on_grill \
+#     --variations 1 \
+#     --episodes_per_task 50
 
 task_name=("meat_on_grill" )
 model_type=(ACT3E0)
