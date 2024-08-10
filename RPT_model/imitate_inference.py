@@ -483,7 +483,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         gripper_state = 0 if gripper_state <= 0 else gripper_state
 
                         done = False
-                        if gripper_state < 0.6 : # and gripper_flag < 2 
+                        if gripper_state < 0.5 : # and gripper_flag < 2 
                             # print(timestep,": close_gripper: ", gripper_state)
                             gripper_flag = gripper_flag + 2 
                             gripper_state = 0

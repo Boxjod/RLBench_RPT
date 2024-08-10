@@ -29,13 +29,13 @@ python3 RLBench/tools/task_builder_sawyer.py --task setup_chess
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks meat_on_grill \
+    --tasks phone_on_base \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
 
 # visualize episode
-python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/sorting_program5/variation0 --episode_idx 3
+python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/phone_on_base/variation0 --episode_idx -1
 # modify datasets
 python3 RPT_model/mod_datasets.py
 
