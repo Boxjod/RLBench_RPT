@@ -318,7 +318,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         query_frequency = 1
         chunk_size = policy_config['chunk_size']
 
-    max_timesteps = int(max_timesteps * 1.0) # may increase for real-world tasks
+    max_timesteps = int(max_timesteps * 1.3) # may increase for real-world tasks
     
     # if config['policy_class'] == "CNNMLP":
     #     max_timesteps = int(max_timesteps * 1.5) 
