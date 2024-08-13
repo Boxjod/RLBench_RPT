@@ -31,13 +31,13 @@ python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks light_bulb_out \
+    --tasks sorting_program5 \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
 
 # visualize episode
-python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/phone_on_base/variation0 --episode_idx -1
+python3 RPT_model/visualize_episodes.py --dataset_dir Datasets/sorting_program5/variation0 --episode_idx 0
 # modify datasets
 python3 RPT_model/mod_datasets.py
 
@@ -96,12 +96,6 @@ python RPT_model/imitate_inference.py \
     
     
 python RPT_model/imitate_inference.py \
-    --task_name meat_off_grill \
-    --ckpt_dir Trainings \
-    --policy_class ACT0E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-    --num_epochs 1000  --lr 1e-5 --seed 0 --backbone resnet18 \
-    ; \
-python RPT_model/imitate_inference.py \
     --task_name phone_on_base \
     --ckpt_dir Trainings \
     --policy_class ACT3E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
@@ -113,5 +107,13 @@ python RPT_model/imitate_inference.py \
     --ckpt_dir Trainings \
     --policy_class ACT3E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 3000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    --eval --temporal_agg \
+    \;
+    
+python RPT_model/imitate_inference.py \
+    --task_name sorting_program5 \
+    --ckpt_dir Trainings \
+    --policy_class ACT3E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+    --num_epochs 6000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     \;
