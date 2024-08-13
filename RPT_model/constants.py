@@ -39,6 +39,13 @@ SIM_TASK_CONFIGS = {
         'num_variation': 1,
         'camera_names': ['wrist']
     },
+    'meat_on_grill':{ 
+        'dataset_dir': DATA_DIR + '/meat_on_grill/variation0', 
+        'episode_len': 70, 
+        'num_episodes': 50,
+        'num_variation': 1,
+        'camera_names': ['wrist']
+    },
 
 }
 

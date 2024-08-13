@@ -223,7 +223,7 @@ def get_image(ts, camera_names, policy_class):
     
     # print(f'{camera_names=}')
     wrist_rgb = ts.wrist_rgb 
-    if "ACT" in policy_class and policy_class!= "ACT0E0":
+    if "ACT" in policy_class: # and policy_class!= "ACT0E0":
         wrist_rgb = cv.resize(wrist_rgb, (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
     
     
@@ -242,7 +242,7 @@ def get_image(ts, camera_names, policy_class):
         
     if "head" in camera_names:    
         head_rgb = ts.head_rgb
-        if "ACT" in policy_class and policy_class!= "ACT0E0":
+        if "ACT" in policy_class: # and policy_class!= "ACT0E0":
             head_rgb = cv.resize(head_rgb, (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
         curr_image = rearrange(ts.head_rgb, 'h w c -> c h w')
         
@@ -462,68 +462,11 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     qpos_list.append(qpos_numpy)
                     target_gpos_list.append(action)
                     rewards.append(reward) 
-                    
-                    if gripper_state < 0.6: 
-                        for g_obj in env._task.get_graspable_objects():
-                            env._robot.gripper.grasp(g_obj)
-                        
-                    elif gripper_state > 0.6:
-                        env._robot.gripper.release()
-                        
-                    # if config['policy_class'] == "CNNMLP":
-                    #     if gripper_state < 0.85 and gripper_flag < 2 : 
-                    #         gripper_flag = gripper_flag + 2
-                    #         done = env._robot.gripper.actuate(0, 1.0)
-                    #         for g_obj in env._task.get_graspable_objects():
-                    #             env._robot.gripper.grasp(g_obj)
-                                
-                    #     elif gripper_state > 1.0 and gripper_flag == 2:
-                    #         print(timestep, ": open_gripper: ", gripper_state)
-                    #         gripper_flag = gripper_flag - 1
-                    #         while done != True:
-                    #             done = env._robot.gripper.actuate(1, 0.4)
-                    #             env._scene.step() 
                 else:
                     try:
                         next_gripper_position = action[0:3] # next 
                         next_gripper_quaternion = action[3:7]
                         path.append(env._robot.arm.get_linear_path(position=next_gripper_position, quaternion=next_gripper_quaternion, steps=10, relative_to=env._robot.arm, ignore_collisions=True))
-                        gripper_state = 1 if gripper_state >= 1 else gripper_state
-                        gripper_state = 0 if gripper_state <= 0 else gripper_state
-
-                        if gripper_state < 0.6 :
-                            # print(timestep,": close_gripper: ", gripper_state)
-                            gripper_state = 0
-                            while not env._robot.gripper.actuate(gripper_state, 0.4):
-                                env._scene.step() 
-                            
-                            if gripper_flag < 2  : # 
-                                gripper_flag = gripper_flag + 2 
-                                print("attach the target")
-                                for g_obj in env._task.get_graspable_objects():
-                                    env._robot.gripper.grasp(g_obj)
-
-                                # clear history information
-                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                                qpos_initial = obs.joint_positions
-                                gpos_initial = obs.gripper_pose
-
-                        elif gripper_state >= 0.6 : 
-                            # print(timestep, ": open_gripper: ", gripper_state)
-                            gripper_state = 1
-                            while not env._robot.gripper.actuate(gripper_state, 0.4):
-                                env._scene.step() 
-                            
-                            if gripper_flag == 2:
-                                gripper_flag = gripper_flag + 1
-                                print("release the target")
-                                env._robot.gripper.release() 
-                                # clear history information
-                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                                qpos_initial = obs.joint_positions
-                                gpos_initial = obs.gripper_pose
 
                         path[t].visualize() 
                         
@@ -542,6 +485,41 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     except ConfigurationPathError: 
                         print("ConfigurationPathError ", t) # , "path lens: ",len(path))
                         break 
+                
+                # deal with gripper
+                if gripper_state < 0.6 :
+                    # print(timestep,": close_gripper: ", gripper_state)
+                    gripper_state = 0
+                    while not env._robot.gripper.actuate(gripper_state, 0.3):
+                        env._scene.step() 
+                    if gripper_flag < 4 : # 
+                        gripper_flag = gripper_flag + 2 
+                        print("attach the target")
+                        for g_obj in env._task.get_graspable_objects():
+                            detected = env._robot.gripper.grasp(g_obj)
+                            print(f"if grasp success:{detected}")
+
+                        # clear history information
+                        history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                        history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                        qpos_initial = obs.joint_positions
+                        gpos_initial = obs.gripper_pose
+
+                elif gripper_state >= 0.6 : 
+                    # print(timestep, ": open_gripper: ", gripper_state)
+                    gripper_state = 1
+                    while not env._robot.gripper.actuate(gripper_state, 0.4):
+                        env._scene.step() 
+                    
+                    if gripper_flag >= 4:
+                        gripper_flag = gripper_flag - 1
+                        print("release the target")
+                        env._robot.gripper.release() 
+                        # clear history information
+                        history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                        history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                        qpos_initial = obs.joint_positions
+                        gpos_initial = obs.gripper_pose
                 t = t + 1
                 
             plt.close()

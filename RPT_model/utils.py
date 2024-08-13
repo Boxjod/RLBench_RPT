@@ -138,7 +138,6 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             change_point = gripper_change_point[0] 
             history_action_len = start_ts - change_point + 1 
 
-            
             if start_ts<=(change_point + self.chunk_size): 
                 
                 history_action = root['/action'][change_point : start_ts + 1] # 10,15
@@ -195,7 +194,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         # new axis for different cameras
         all_cam_images = []
         for cam_name in self.camera_names:
-            if "ACT" in self.policy_class and self.policy_class!= "ACT0E0":
+            if "ACT" in self.policy_class: # and self.policy_class!= "ACT0E0":
                 image_dict[cam_name] = cv.resize(image_dict[cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
                 
             all_cam_images.append(image_dict[cam_name])
@@ -206,7 +205,7 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         for history_idx in range(history_action_len):
             all_history_cam_images = []
             for cam_name in self.camera_names: 
-                if "ACT" in self.policy_class and self.policy_class!= "ACT0E0":
+                if "ACT" in self.policy_class: # and self.policy_class!= "ACT0E0":
                     history_images[history_idx][cam_name] = cv.resize(history_images[history_idx][cam_name], (0, 0), fx=0.25, fy=0.25, interpolation=cv.INTER_AREA)
                     
                 all_history_cam_images.append(history_images[history_idx][cam_name])

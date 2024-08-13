@@ -20,8 +20,8 @@ python3 RLBench/tools/task_builder_sawyer.py --task sorting_program5
 python3 RLBench/tools/task_builder_sawyer.py --task push_button
 python3 RLBench/tools/task_builder_sawyer.py --task basketball_in_hoop 
 
-python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base # 夹不起来
-python3 RLBench/tools/task_builder_sawyer.py --task meat_on_grill # 夹不起来
+python3 RLBench/tools/task_builder_sawyer.py --task phone_on_base 
+python3 RLBench/tools/task_builder_sawyer.py --task meat_on_grill
 
 python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out # could but bad×××××××××
 
@@ -31,7 +31,7 @@ python3 RLBench/tools/task_builder_sawyer.py --task light_bulb_out
 # demo generate  
 python3 RLBench/tools/dataset_generator_hdf5.py \
     --save_path Datasets \
-    --tasks sorting_program5 \
+    --tasks meat_on_grill \
     --variations 1 \
     --episodes_per_task 50 \
 ; \
@@ -103,7 +103,7 @@ python RPT_model/imitate_inference.py \
     --eval --temporal_agg \
     \ ;
 python RPT_model/imitate_inference.py \
-    --task_name phone_on_base \
+    --task_name meat_on_grill \
     --ckpt_dir Trainings \
     --policy_class ACT3E0 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
     --num_epochs 3000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
