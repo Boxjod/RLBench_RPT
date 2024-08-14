@@ -454,11 +454,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     history_image_feature[0] = np.insert(history_image_feature[0], 0, image_feature[0], axis=0)[:chunk_size]
                     history_image_feature[1] = np.insert(history_image_feature[1], 0, image_feature[1], axis=0)[:chunk_size]
 
-                gripper_state = action[7]
-                
-                
                 if action_is_qpos:
-                    ts_obs, reward, terminate = env.step(action) # qpos could deal with gripper 
+                    ts_obs, reward, terminate = env.step(action) # qpos could deal with gripper command
                     qpos_list.append(qpos_numpy)
                     target_gpos_list.append(action)
                     rewards.append(reward) 
@@ -466,7 +463,38 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     try:
                         next_gripper_position = action[0:3] # next 
                         next_gripper_quaternion = action[3:7]
+                        gripper_state = action[7]
                         path.append(env._robot.arm.get_linear_path(position=next_gripper_position, quaternion=next_gripper_quaternion, steps=10, relative_to=env._robot.arm, ignore_collisions=True))
+                        
+                        # deal with gripper
+                        if gripper_state < 0.6 :
+                            gripper_state = 0
+                            
+                            if gripper_flag < 4 : # 
+                                gripper_flag = gripper_flag + 2 
+                                # print("attach the target")
+                                for g_obj in env._task.get_graspable_objects():
+                                    detected = env._robot.gripper.grasp(g_obj)
+
+                                # clear history information
+                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                                qpos_initial = obs.joint_positions
+                                gpos_initial = obs.gripper_pose
+
+                        elif gripper_state >= 0.6 : 
+                            gripper_state = 1
+                            if gripper_flag >= 4:
+                                gripper_flag = gripper_flag - 1
+                                # print("release the target")
+                                env._robot.gripper.release() 
+                                # clear history information
+                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                                qpos_initial = obs.joint_positions
+                                gpos_initial = obs.gripper_pose
+                                
+                        env._action_mode.gripper_action_mode.action(env._scene, np.array((gripper_state,)))
 
                         path[t].visualize() 
                         
@@ -485,41 +513,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     except ConfigurationPathError: 
                         print("ConfigurationPathError ", t) # , "path lens: ",len(path))
                         break 
-                
-                # deal with gripper
-                if gripper_state < 0.6 :
-                    # print(timestep,": close_gripper: ", gripper_state)
-                    gripper_state = 0
-                    while not env._robot.gripper.actuate(gripper_state, 0.3):
-                        env._scene.step() 
-                    if gripper_flag < 4 : # 
-                        gripper_flag = gripper_flag + 2 
-                        print("attach the target")
-                        for g_obj in env._task.get_graspable_objects():
-                            detected = env._robot.gripper.grasp(g_obj)
-                            print(f"if grasp success:{detected}")
 
-                        # clear history information
-                        history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                        history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                        qpos_initial = obs.joint_positions
-                        gpos_initial = obs.gripper_pose
-
-                elif gripper_state >= 0.6 : 
-                    # print(timestep, ": open_gripper: ", gripper_state)
-                    gripper_state = 1
-                    while not env._robot.gripper.actuate(gripper_state, 0.4):
-                        env._scene.step() 
-                    
-                    if gripper_flag >= 4:
-                        gripper_flag = gripper_flag - 1
-                        print("release the target")
-                        env._robot.gripper.release() 
-                        # clear history information
-                        history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                        history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                        qpos_initial = obs.joint_positions
-                        gpos_initial = obs.gripper_pose
                 t = t + 1
                 
             plt.close()
@@ -533,9 +527,9 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         highest_rewards.append(episode_highest_reward)
         # print(f'Rollout {rollout_id}\n{episode_return=}, {episode_highest_reward=}, {env_max_reward=}, Success: {episode_highest_reward==env_max_reward}')
         print(f'{rollout_id} Rollout with {t} steps for [{descriptions[0]}]: {episode_highest_reward==env_max_reward}')
-        if(rollout_id % 5 == 0): 
-            if save_episode:
-                save_videos(image_list, DT, video_path=os.path.join(ckpt_dir, f'video_{ckpt_name0}_{rollout_id}_{episode_highest_reward==env_max_reward}.mp4'))
+        # if(rollout_id % 5 == 0): 
+        #     if save_episode:
+        #         save_videos(image_list, DT, video_path=os.path.join(ckpt_dir, f'video_{ckpt_name0}_{rollout_id}_{episode_highest_reward==env_max_reward}.mp4'))
 
     success_rate = np.mean(np.array(highest_rewards) == env_max_reward) 
     avg_return = np.mean(episode_returns) 
@@ -686,7 +680,7 @@ def train_bc(train_dataloader, val_dataloader, config):
 def plot_history(train_history, validation_history, num_epochs, ckpt_dir, seed):
     # save training curves
     for key in train_history[0]:
-        plot_path = os.path.join(ckpt_dir, f'trainval_{key}_epoch{num_epochs}_seed{seed}.png')
+        plot_path = os.path.join(ckpt_dir, f'trainval_{key}_epoch_seed{seed}.png') # {num_epochs}
         
         plt.figure()
         train_values = [summary[key].item() for summary in train_history]
