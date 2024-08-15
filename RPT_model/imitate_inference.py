@@ -319,9 +319,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
         chunk_size = policy_config['chunk_size']
 
     max_timesteps = int(max_timesteps * 1.3) # may increase for real-world tasks
-    
-    # if config['policy_class'] == "CNNMLP":
-    #     max_timesteps = int(max_timesteps * 1.5) 
 
     num_rollouts = num_verification 
     command_list = []
@@ -403,7 +400,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         if use_language and (t % max_skill_len == 0) :
                             # Check if an intervention is needed; if so, language correction
                             command = descriptions[0] 
-                            # command =  "grasp the blue target" #"aaaaaaaaaaaaaaaaaa"# commands[0] # "reach to the red target"  # "pick up the plate" "grasp the blue target"
                             command_embedding = generate_command_embedding(command, t, language_encoder, tokenizer, model)
                             # print(command_embedding)
                         
@@ -469,22 +465,23 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         # deal with gripper
                         if gripper_state < 0.6 :
                             gripper_state = 0
-                            
-                            if gripper_flag < 4 : # 
-                                gripper_flag = gripper_flag + 2 
+                            for g_obj in env._task.get_graspable_objects():
+                                env._robot.gripper.grasp(g_obj)
+                                    
+                            if gripper_flag < 2 : # 
+                                gripper_flag = gripper_flag + 1 
                                 # print("attach the target")
-                                for g_obj in env._task.get_graspable_objects():
-                                    detected = env._robot.gripper.grasp(g_obj)
-
+                                
                                 # clear history information
-                                history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
-                                history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
-                                qpos_initial = obs.joint_positions
-                                gpos_initial = obs.gripper_pose
+                                if gripper_flag==2:
+                                    history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
+                                    history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
+                                    qpos_initial = obs.joint_positions
+                                    gpos_initial = obs.gripper_pose
 
                         elif gripper_state >= 0.6 : 
                             gripper_state = 1
-                            if gripper_flag >= 4:
+                            if gripper_flag >= 2:
                                 gripper_flag = gripper_flag - 1
                                 # print("release the target")
                                 env._robot.gripper.release() 
@@ -493,7 +490,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                                 history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                                 qpos_initial = obs.joint_positions
                                 gpos_initial = obs.gripper_pose
-                                
+                        
+                        # print(f'action = {gripper_state=}')
                         env._action_mode.gripper_action_mode.action(env._scene, np.array((gripper_state,)))
 
                         path[t].visualize() 
@@ -513,6 +511,9 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                     except ConfigurationPathError: 
                         print("ConfigurationPathError ", t) # , "path lens: ",len(path))
                         break 
+
+                if reward == env_max_reward:
+                    break # if already success, directly break this episode to speed up the eval process
 
                 t = t + 1
                 

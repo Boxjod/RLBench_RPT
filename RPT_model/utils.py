@@ -136,23 +136,24 @@ class  EpisodicDataset(torch.utils.data.Dataset):
             gripper_change_point.append(0)
 
             change_point = gripper_change_point[0] 
-            history_action_len = start_ts - change_point + 1 
+            history_action_len = start_ts - change_point 
 
-            if start_ts<=(change_point + self.chunk_size): 
+            if history_action_len<=(self.chunk_size): 
                 
-                history_action = root['/action'][change_point : start_ts + 1] # 10,15
-                for history_idx in range(change_point, start_ts + 1):
+                history_action = root['/action'][change_point : start_ts] # 10,15
+
+                for history_idx in range(change_point, start_ts):
                     for cam_name in self.camera_names:
                         history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
                     history_images.append(history_image_dict.copy())
             else:
-                history_action = root['/action'][start_ts - self.chunk_size : start_ts + 1] # chunk 10,change 10, start40,40 - 10 = 30, 30 ~ 10
-                for history_idx in range(start_ts - self.chunk_size, start_ts + 1):
+                history_action = root['/action'][start_ts - self.chunk_size : start_ts] # chunk 10,change 10, start40,40 - 10 = 30, 30 ~ 10
+                for history_idx in range(start_ts - self.chunk_size, start_ts):
                     for cam_name in self.camera_names:
                         history_image_dict[cam_name] = root[f'/observations/images/{cam_name}'][history_idx]
                     history_images.append(history_image_dict.copy())
             history_action_len = min(history_action_len, self.chunk_size)
-        
+
             # use diff
             if self.use_diff:
                 qpos = root['/observations/qpos'][start_ts]
@@ -211,15 +212,15 @@ class  EpisodicDataset(torch.utils.data.Dataset):
                 all_history_cam_images.append(history_images[history_idx][cam_name])
             all_history_cam_images = np.stack(all_cam_images, axis=0)
             history_all_cam_images.append(all_history_cam_images)
-            
-        original_images_shape = np.shape(history_all_cam_images)
-        padded_history_images = np.zeros((self.chunk_size,) + original_images_shape[1:], dtype=np.float32)
-        history_all_cam_images = history_all_cam_images[::-1] 
-        padded_history_images[:history_action_len] = history_all_cam_images[:history_action_len] # padded_history_images
+        
+        original_images_shape = np.shape(all_cam_images) # np.shape(history_all_cam_images) 
+        padded_history_images = np.zeros((self.chunk_size,) + original_images_shape[:], dtype=np.float32 )# just for 1 camera now
+        history_all_cam_images = history_all_cam_images[::-1]  # reverse
+        if history_all_cam_images != []:
+            padded_history_images[:history_action_len] = history_all_cam_images[:history_action_len] # padded_history_images
         
         history_all_cam_images = np.array(padded_history_images)
         history_images_data = torch.from_numpy(history_all_cam_images)
-        
         # Constructing the observations
         image_data = torch.from_numpy(all_cam_images)
         qpos_data = torch.from_numpy(qpos).float()
@@ -227,10 +228,13 @@ class  EpisodicDataset(torch.utils.data.Dataset):
         action_data = torch.from_numpy(padded_action).float()
         is_pad_action = torch.from_numpy(is_pad_action).bool()
         history_action_data = torch.from_numpy(padded_history_action).float()
+        
         is_pad_history = torch.from_numpy(is_pad_history).bool()
+        
         
         # Adjusting channel
         image_data = torch.einsum('k h w c -> k c h w', image_data)
+        
         history_images_data = torch.einsum('q k h w c -> q k c h w', history_images_data) 
         
         # normalize image and change dtype to float
