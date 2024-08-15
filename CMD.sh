@@ -1,5 +1,5 @@
 # train on the server
-tmux new -s rpt
+tmux new -s rpt2
 conda activate rlbench_rpt
 cd ~/workspace/RLBench_RPT
 . do_server.sh
