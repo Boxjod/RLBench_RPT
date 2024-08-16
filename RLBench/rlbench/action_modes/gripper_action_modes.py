@@ -51,10 +51,15 @@ class Discrete(GripperActionMode):
 
     def _actuate(self, action, scene):
         done = False
+        timeout_count = 0
         while not done:
             done = scene.robot.gripper.actuate(action, velocity=0.2)
             scene.pyrep.step()
             scene.task.step()
+            timeout_count = timeout_count + 1
+            if timeout_count > 100:
+                print("gripper alignment timeout")
+                break
 
     def action(self, scene: Scene, action: np.ndarray):
         assert_action_shape(action, self.action_shape(scene.robot))
@@ -68,22 +73,17 @@ class Discrete(GripperActionMode):
 
         if current_ee != action:
             done = False
-            # if not self._detach_before_open:
-            #     self._actuate(action, scene)
+            if not self._detach_before_open:
+                self._actuate(action, scene)
             if action == 0.0: # and self._attach_grasped_objects
                 # If gripper close action, the check for grasp.
-                self._actuate(action, scene)
                 for g_obj in scene.task.get_graspable_objects():
-                    attached = scene.robot.gripper.grasp(g_obj)
-                # if attached:
-                #     print("清除速度")
-                #     scene.robot.gripper.set_joint_target_velocities([0.0] * scene.robot.gripper._num_joints)
+                    scene.robot.gripper.grasp(g_obj)
             else:
                 # If gripper open action, the check for un-grasp.
-                self._actuate(action, scene)
                 scene.robot.gripper.release()
-            # if self._detach_before_open:
-            #     self._actuate(action, scene)
+            if self._detach_before_open:
+                self._actuate(action, scene)
             if action == 1.0:
                 # Step a few more times to allow objects to drop
                 for _ in range(10):

@@ -101,11 +101,9 @@ class Gripper(RobotComponent):
         # Decide on if we need to open or close
         joint_range = joint_intervals[:, 1] - joint_intervals[:, 0]
         target_pos = joint_intervals[:, 0] + (joint_range * amount)
-        # print(f'{target_pos=}')
         current_positions = self.get_joint_positions()
         
         for i, (j, target, cur) in enumerate(zip(self.joints, target_pos, current_positions)):
-        #     print(f'{cur=}, {cur - target}, {target=}')
             vel = -velocity if cur - target > 0 else velocity
             j.set_joint_target_velocity(vel)
         

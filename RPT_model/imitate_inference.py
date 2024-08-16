@@ -470,50 +470,30 @@ def eval_bc(config, ckpt_name, save_episode=True, num_verification=50, variation
                         # gripper deal
                         gripper_state = action[7]
                         env._action_mode.gripper_action_mode.action(env._scene, np.array((gripper_state,)))
-                        # print(f'{gripper_state=}')
                         
-                        # deal with gripper
-                        if gripper_state < 0.6 :
-                            # gripper_state = 0
-                            # print(f'close')
-                            
+                        # deal with history clip
+                        if gripper_state < 0.4 :
                             if gripper_flag < 2 : # 
                                 gripper_flag = gripper_flag + 1 
-                                # print("attach the target")
-                                
-                                # for g_obj in env._task.get_graspable_objects():
-                                #     env._robot.gripper.grasp(g_obj)
-                                    
+
                                 # clear history information
                                 if gripper_flag==1:
-                                    # print(f'clear history information')
+                                    print('close gripper, clear history information')
                                     history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
                                     history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                                     qpos_initial = obs.joint_positions
                                     gpos_initial = obs.gripper_pose
                         
                         elif gripper_state >= 0.8 : 
-                            # gripper_state = 1
                             if gripper_flag >= 2:
-                                # print(f'clear history information')
                                 gripper_flag = gripper_flag - 1
-                                # print("release the target")
-                                # env._robot.gripper.release() 
+
                                 # clear history information
+                                print('open gripper, clear history information')
                                 history_action = np.zeros((chunk_size,) + (action_dim,), dtype=np.float32)
                                 history_image_feature = np.zeros((2,chunk_size,) + (hidden_dim,), dtype=np.float32)
                                 qpos_initial = obs.joint_positions
                                 gpos_initial = obs.gripper_pose
-                        
-                        # print(f'action = {gripper_state=}')
-                        # if gripper_state > 1:
-                        #     gripper_state = 1
-                        # elif gripper_state < 0:
-                        #     gripper_state = 0
-
-                        # while not env._robot.gripper.actuate(gripper_state, 0.1):
-                        #     env._scene.step()
-                        # done = scene.robot.gripper.actuate(action, velocity=0.2)
 
                         ts_obs = env._scene.get_observation()
                         reward, _ = env._task.success() 
