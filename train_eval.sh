@@ -95,7 +95,7 @@ for task in ${task_name[@]}
           --task_name $task \
           --ckpt_dir Trainings \
           --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-          --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
+          --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone 
           done
         done
       done
@@ -124,7 +124,7 @@ for task in ${task_name[@]}
           --task_name $task \
           --ckpt_dir Trainings \
           --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-          --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
+          --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone 
           done
         done
       done
@@ -160,6 +160,7 @@ for task in ${task_name[@]}
           --ckpt_dir Trainings \
           --policy_class $model --kl_weight 10 --chunk_size $chunk --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
           --num_epochs $epoch  --lr 1e-5 --seed 0 --backbone $backbone \
+          --eval --temporal_agg 
           done
         done
       done
