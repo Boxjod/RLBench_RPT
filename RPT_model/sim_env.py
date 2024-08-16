@@ -47,7 +47,7 @@ def make_sim_env(task_name, policy_class):
     obs_config.wrist_camera.depth_in_meters = False
     obs_config.front_camera.image_size = img_size
     
-    headless_val = False # False 
+    headless_val = True # False 
     if socket.gethostname() != 'XJ':
         headless_val = True
         

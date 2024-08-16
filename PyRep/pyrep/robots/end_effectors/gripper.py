@@ -101,30 +101,41 @@ class Gripper(RobotComponent):
         # Decide on if we need to open or close
         joint_range = joint_intervals[:, 1] - joint_intervals[:, 0]
         target_pos = joint_intervals[:, 0] + (joint_range * amount)
-
+        # print(f'{target_pos=}')
         current_positions = self.get_joint_positions()
-        done = True
+        
+        for i, (j, target, cur) in enumerate(zip(self.joints, target_pos, current_positions)):
+        #     print(f'{cur=}, {cur - target}, {target=}')
+            vel = -velocity if cur - target > 0 else velocity
+            j.set_joint_target_velocity(vel)
+        
+        # make sure go to the middle
+        if current_positions[0] < current_positions[1]:
+            self.joints[0].set_joint_target_velocity(vel/5)
+        elif current_positions[0] > current_positions[1]:
+            self.joints[1].set_joint_target_velocity(vel/5)
+        
+        done = True 
         for i, (j, target, cur, prev) in enumerate(zip(
                 self.joints, target_pos, current_positions,
                 self._prev_positions)):
             # Check if the joint has moved much
             not_moving = (prev is not None and
-                          np.fabs(cur - prev) < POSITION_ERROR)
+                            np.fabs(cur - prev) < POSITION_ERROR) 
             reached_target = np.fabs(target - cur) < POSITION_ERROR
-            vel = -velocity if cur - target > 0 else velocity
+            gripper_middle = (current_positions[0] - current_positions[1]) < POSITION_ERROR*2
             oscillating = (self._prev_vels[i] is not None and
-                           vel != self._prev_vels[i])
-            if not_moving or reached_target or oscillating:
-                j.set_joint_target_velocity(0)
+                            vel != self._prev_vels[i])    
+            if (not_moving or reached_target or oscillating) and gripper_middle :         
                 continue
             done = False
             self._prev_vels[i] = vel  # type: ignore
-            j.set_joint_target_velocity(vel)
+        
         self._prev_positions = current_positions  # type: ignore
         if done:
             self._prev_positions = [None] * self._num_joints
             self._prev_vels = [None] * self._num_joints
-            self.set_joint_target_velocities([0.0] * self._num_joints)
+            # self.set_joint_target_velocities([0.0] * self._num_joints)
         return done
 
     def get_open_amount(self) -> List[float]:

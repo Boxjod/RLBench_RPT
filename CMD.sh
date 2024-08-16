@@ -150,7 +150,7 @@ python RPT_model/imitate_inference.py \
     --task_name sorting_program5 \
     --ckpt_dir Trainings \
     --policy_class ACT3E3 --kl_weight 10 --chunk_size 20 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
-    --num_epochs 12000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
+    --num_epochs 15000  --lr 1e-5 --seed 0 --backbone efficientnet_b0 \
     --eval --temporal_agg \
     \;
     
