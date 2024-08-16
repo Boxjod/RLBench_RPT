@@ -143,8 +143,6 @@ python RPT_model/imitate_inference.py \
     --eval --temporal_agg \
     \;
 
-
-
 # 8.15
 python RPT_model/imitate_inference.py \
     --task_name sorting_program5 \
